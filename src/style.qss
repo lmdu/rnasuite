@@ -1,0 +1,34 @@
+QSvgWidget {
+	background: white;
+}
+
+QToolBar {
+	spacing: 8px;
+}
+
+QTableView {
+	alternate-background-color: #f2f2f2;
+	selection-background-color: #2f2f2f;
+}
+
+QTableView::Item {
+	outline: 0;
+}
+
+QHeaderView {
+}
+
+QDockWidget{
+	padding: 0;
+}
+
+QTreeWidget > QPushButton {
+	max-width: 20px;
+	border: 1px solid red;
+}
+
+RNASuitePackageInstallMessage {
+	background-color: #2f2f2f;
+	color: white;
+}
+
