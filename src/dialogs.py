@@ -9,11 +9,77 @@ from PySide6.QtWidgets import *
 from utils import *
 from params import *
 from widgets import *
+from threads import *
 
-__all__ = ['RNASuitePackageManagerDialog', 'RNASuiteDEGParameterDialog',
-	'RNASuiteShowDEGParameterDialog'
+__all__ = ['RNASuitePackageManagerDialog', 'RNASuiteDeseqParameterDialog',
+	'RNASuiteShowDEGParameterDialog', 'RNASuiteGlobalSettingDialog',
+	'RNASuiteEdgerParameterDialog'
 ]
 
+class RNASuiteGlobalSettingDialog(QDialog):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+
+		self.setWindowTitle("Global Settings")
+		self.list_widget = QListWidget(self)
+		self.list_widget.setIconSize(QSize(32, 32))
+		self.stack_widget = QStackedWidget(self)
+
+		self.list_widget.currentRowChanged.connect(self.stack_widget.setCurrentIndex)
+
+		self.button_box = QDialogButtonBox(
+			QDialogButtonBox.RestoreDefaults | QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+		)
+
+		self.button_box.accepted.connect(self.save_settings)
+		self.button_box.rejected.connect(self.reject)
+		self.button_box.button(QDialogButtonBox.RestoreDefaults).clicked.connect(self.reset_settings)
+
+		main_layout = QVBoxLayout()
+		main_layout.setSpacing(20)
+		widget_layout = QHBoxLayout()
+		widget_layout.setSpacing(20)
+		widget_layout.addWidget(self.list_widget)
+		widget_layout.addWidget(self.stack_widget, 1)
+		main_layout.addLayout(widget_layout)
+		main_layout.addWidget(self.button_box)
+		self.setLayout(main_layout)
+
+		self.create_pages()
+
+	def sizeHint(self):
+		return QSize(700, 400)
+
+	def create_pages(self):
+		pages = [
+			('R General', 'icons/rlogo.svg', RNASuiteRGeneralSettingPage)
+		]
+
+		list_width = 0
+		for text, icon, pager in pages:
+			item = QListWidgetItem(QIcon(icon), text)
+			self.list_widget.addItem(item)
+			page = pager(self)
+			self.stack_widget.addWidget(page)
+			item_width = self.list_widget.visualItemRect(item).width()
+
+			if item_width > list_width:
+				list_width = item_width
+		
+		list_width += 10
+		self.list_widget.setFixedWidth(list_width)
+
+	def save_settings(self):
+		for i in range(self.stack_widget.count()):
+			widget = self.stack_widget.widget(i)
+			widget.write_settings()
+
+		self.accept()
+
+	def reset_settings(self):
+		for i in range(self.stack_widget.count()):
+			widget = self.stack_widget.widget(i)
+			widget.restore_settings()
 
 class RNASuitePackageManagerDialog(QDialog):
 	def __init__(self, parent):
@@ -90,9 +156,12 @@ class RNASuitePackageManagerDialog(QDialog):
 
 class RNASuiteParameterDialog(QDialog):
 	parameters = {}
+	title = None
 
 	def __init__(self, parent=None, defines={}, dataset=None):
 		super().__init__(parent)
+		self.setWindowTitle(self.title)
+
 		self.widgets = AttrDict()
 		self.defines = defines
 		self.dataset = dataset
@@ -192,8 +261,9 @@ class RNASuiteParameterDialog(QDialog):
 		if dlg.exec() == QDialog.Accepted:
 			return dlg.get_param_values()
 
-class RNASuiteDEGParameterDialog(RNASuiteParameterDialog):
+class RNASuiteDeseqParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDEGParameters
+	title = "Identify DEGs by DESeq2"
 
 	@Slot()
 	def custom_design_toggle(self, state):
@@ -232,8 +302,62 @@ class RNASuiteDEGParameterDialog(RNASuiteParameterDialog):
 		self.widgets.compare.addItems(list(self.dataset.keys()))
 		self.widgets.eliminate.currentTextChanged.connect(self.eliminate_factor_changed)
 
+class RNASuiteEdgerParameterDialog(RNASuiteParameterDialog):
+	parameters = RNASuiteEdgerParameters
+	title = "Identify DEGs by edgeR"
+
+	@Slot()
+	def custom_design_toggle(self, state):
+		if state:
+			self.widgets.design.setReadOnly(False)
+		else:
+			self.widgets.design.setReadOnly(True)
+
+	@Slot()
+	def comparison_between_changed(self, group):
+		groups = list(map(str, self.dataset[group]))
+		self.widgets.control.clear()
+		self.widgets.control.addItems(groups)
+		self.widgets.treatment.clear()
+		self.widgets.treatment.addItems(groups)
+
+		factors = list(self.dataset.keys())
+		factors.remove(group)
+		self.widgets.eliminate.add_items(factors)
+
+		self.widgets.design.setText("~ 0 + {}".format(group))
+
+	@Slot()
+	def eliminate_factor_changed(self, factors):
+		group = self.widgets.compare.currentText()
+
+		if factors:
+			self.widgets.design.setText("~ 0 + {} + {}".format(group, factors))
+		else:
+			self.widgets.design.setText("~ 0 + {}".format(group))
+
+	def with_replicate_changed(self, index):
+		if index == 0:
+			self.widgets.bcv.setDisabled(True)
+			self.widgets.method.model().item(0).setEnabled(True)
+			self.widgets.method.setCurrentIndex(0)
+		else:
+			self.widgets.bcv.setDisabled(False)
+			self.widgets.method.model().item(0).setEnabled(False)
+			self.widgets.method.setCurrentIndex(2)
+
+	def register_events(self):
+		self.widgets.design.setReadOnly(True)
+		self.widgets.bcv.setDisabled(True)
+		self.widgets.custom.stateChanged.connect(self.custom_design_toggle)
+		self.widgets.compare.currentTextChanged.connect(self.comparison_between_changed)
+		self.widgets.compare.addItems(list(self.dataset.keys()))
+		self.widgets.eliminate.currentTextChanged.connect(self.eliminate_factor_changed)
+		self.widgets.replicate.currentIndexChanged.connect(self.with_replicate_changed)
+
 class RNASuiteShowDEGParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteShowDEGParameters
+	title = "Show DEGs"
 
 	def register_events(self):
 		group = self.defines['compare']

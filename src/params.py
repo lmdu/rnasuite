@@ -1,6 +1,8 @@
 from utils import *
 
-__all__ = ['RNASuiteDEGParameters', 'RNASuiteShowDEGParameters']
+__all__ = ['RNASuiteDEGParameters', 'RNASuiteShowDEGParameters',
+	'RNASuiteEdgerParameters'
+]
 
 class RNASuiteParameters():
 	def __init__(self, *args):
@@ -15,13 +17,6 @@ class RNASuiteParameters():
 			yield p
 
 RNASuiteDEGParameters = RNASuiteParameters(
-	AttrDict(
-		key = 'method',
-		type = list,
-		options = ['DESeq2', 'edgeR', 'limma'],
-		display = 'Method:',
-		default = 'DESeq2'
-	),
 	AttrDict(
 		key = 'fdr',
 		type = float,
@@ -105,6 +100,20 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 		default = None
 	),
 	AttrDict(
+		key = 'control',
+		type = list,
+		options = [],
+		display = 'Control group:',
+		default = None
+	),
+	AttrDict(
+		key = 'treatment',
+		type = list,
+		options = [],
+		display = 'Treatment group:',
+		default = None
+	),
+	AttrDict(
 		key = 'eliminate',
 		type = set,
 		options = [],
@@ -124,12 +133,30 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 		default = False
 	),
 	AttrDict(
+		key = 'replicate',
+		type = list,
+		options = ['Biological Replicates', 'No Biological Replicates'],
+		display = "Use edgeR with:",
+		default = None
+	),
+	AttrDict(
 		key = 'bcv',
 		type = float,
 		range = (0, 1),
 		step = 0.01,
 		display = "BCV value:",
 		default = 0.4
+	),
+	AttrDict(
+		key = 'method',
+		type = list,
+		options = [
+			"Quasi-likelihood F-tests",
+			"Likelihood ratio tests",
+			"Classic exact test"
+		],
+		display = "Testing method:",
+		default = None
 	)
 )
 

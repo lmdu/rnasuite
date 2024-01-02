@@ -25,7 +25,6 @@ class RNASuiteMainWindow(QMainWindow):
 		super().__init__()
 
 		self.setWindowTitle("RNASuite v{}".format(RNASUITE_VERSION))
-		self.resize(1200, 800)
 		self.pyconn, self.rconn = multiprocessing.Pipe()
 
 		self.stored_params = {}
@@ -42,8 +41,24 @@ class RNASuiteMainWindow(QMainWindow):
 		self.create_table_manager()
 		self.create_r_enviroment()
 		self.create_error_prompter()
-
+		self.read_settings()
 		self.show()
+
+	def read_settings(self):
+		settings = QSettings()
+		settings.beginGroup('Window')
+		self.resize(settings.value('size', QSize(1000, 700)))
+		self.move(settings.value('pos', QPoint(200, 200)))
+		settings.endGroup()
+
+	def write_settings(self):
+		settings = QSettings()
+
+		if not self.isMaximized():
+			settings.beginGroup('Window')
+			settings.setValue('size', self.size())
+			settings.setValue('pos', self.pos())
+			settings.endGroup()
 
 	def create_r_enviroment(self):
 		self.r_thread = RNASuiteRMessageProcessor(self)
@@ -129,6 +144,7 @@ class RNASuiteMainWindow(QMainWindow):
 		#print(R.rcall('ls'))
 
 	def closeEvent(self, event):
+		self.write_settings()
 		self.plot_viewer.disconnect_to_socket()
 		self.pyconn.close()
 		event.accept()
@@ -197,8 +213,8 @@ class RNASuiteMainWindow(QMainWindow):
 		self.inkegga_act = QAction("KEGG Annotation", self)
 		self.inkegga_act.triggered.connect(self.on_import_kegg_annotation)
 
-		#self.input_dock_act = self.input_dock.toggleViewAction()
-		#self.input_dock_act.setText("Show Input Tables")
+		self.input_dock_act = self.input_dock.toggleViewAction()
+		self.input_dock_act.setText("Show Input Tables")
 		self.output_dock_act = self.output_dock.toggleViewAction()
 		self.output_dock_act.setText("Show Output Tables")
 		self.plot_dock_act = self.plot_dock.toggleViewAction()
@@ -221,6 +237,10 @@ class RNASuiteMainWindow(QMainWindow):
 		self.exit_act = QAction("Exit", self)
 		self.exit_act.setShortcut(QKeySequence.Quit)
 		self.exit_act.triggered.connect(self.close)
+
+		self.global_set_act = QAction("Global Settings")
+		self.global_set_act.setShortcut(QKeySequence.Preferences)
+		self.global_set_act.triggered.connect(self.do_open_setting_dialog)
 
 		self.install_act = QAction("R Package Manager", self)
 		self.install_act.triggered.connect(self.on_open_package_dialog)
@@ -261,8 +281,10 @@ class RNASuiteMainWindow(QMainWindow):
 		self.file_menu.addAction(self.exit_act)
 
 		self.edit_menu = self.menuBar().addMenu("&Edit")
+		self.edit_menu.addAction(self.global_set_act)
+
 		self.view_menu = self.menuBar().addMenu("&View")
-		#self.view_menu.addAction(self.input_dock_act)
+		self.view_menu.addAction(self.input_dock_act)
 		self.view_menu.addAction(self.output_dock_act)
 		self.view_menu.addAction(self.plot_dock_act)
 
@@ -310,6 +332,11 @@ class RNASuiteMainWindow(QMainWindow):
 	@Slot()
 	def on_open_package_dialog(self):
 		dlg = RNASuitePackageManagerDialog(self)
+		dlg.exec()
+
+	@Slot()
+	def do_open_setting_dialog(self):
+		dlg = RNASuiteGlobalSettingDialog(self)
 		dlg.exec()
 
 	def import_data_file(self, title, table):
@@ -429,7 +456,7 @@ class RNASuiteMainWindow(QMainWindow):
 		defines = self.stored_params.get('degs', {})
 		samples = self.table_widgets.get_data('sample_info')
 		dataset = {c: list(samples[c].unique()) for c in samples.columns}
-		params = RNASuiteDEGParameterDialog.get_params(self, defines, dataset)
+		params = RNASuiteDeseqParameterDialog.get_params(self, defines, dataset)
 
 		if not params:
 			return
@@ -442,7 +469,19 @@ class RNASuiteMainWindow(QMainWindow):
 
 	@Slot()
 	def do_identify_degs_by_edger(self):
-		pass
+		if self.has_running_worker():
+			return
+
+		if self.has_none_deg_data():
+			return
+
+		defines = self.stored_params.get('degs', {})
+		samples = self.table_widgets.get_data('sample_info')
+		dataset = {c: list(samples[c].unique()) for c in samples.columns}
+		params = RNASuiteEdgerParameterDialog.get_params(self, defines, dataset)
+
+		if not params:
+			return
 
 	def has_none_identified_degs(self):
 		if 'degs' not in self.stored_params or not self.table_widgets.has_table('degs_list'):
@@ -482,7 +521,7 @@ class RNASuiteMainWindow(QMainWindow):
 	def create_input_dock(self):
 		self.input_tabs = QTabWidget(self)
 		self.input_dock = QDockWidget("Input", self)
-		self.input_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
+		#self.input_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
 		self.input_dock.setAllowedAreas(Qt.LeftDockWidgetArea)
 		self.input_dock.setWidget(self.input_tabs)
 		self.addDockWidget(Qt.LeftDockWidgetArea, self.input_dock)

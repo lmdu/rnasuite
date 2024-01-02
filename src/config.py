@@ -31,7 +31,9 @@ class RNASuiteErrors(ClassDict):
 class RNASuitePackages(ClassDict):
 	_orders = ['Base', 'DEG', 'PCA', 'Enrichment', 'Plot', 'Annotation']
 	Base = [
-		RNASuitePackage('R', "R is a free software environment for statistical computing and graphics", 'CRAN', '4.3.2')
+		RNASuitePackage('R', "R is a free software environment for statistical computing and graphics", 'CRAN', '4.3.2'),
+		RNASuitePackage('httpgd', "A graphics device for R that is accessible via network protocols", 'CRAN', '1.3.1'),
+		RNASuitePackage('reticulate', "Interface to Python modules, classes, and functions", 'CRAN', '1.34.0')
 	]
 	DEG = [
 		RNASuitePackage('DESeq2', "Differential gene expression analysis based on the negative binomial distribution", 'Bioconductor', '1.42.0'),
@@ -69,3 +71,11 @@ class RNASuitePackages(ClassDict):
 		RNASuitePackage('org.EcSakai.eg.db', "Genome wide annotation for E coli strain Sakai", 'Bioconductor', '3.18.0'),
 		RNASuitePackage('org.Mxanthus.db', "Genome wide annotation for Myxococcus xanthus DK 1622", 'Bioconductor', '3.18.0'),
 	]
+
+RNASUITE_SETTINGS = {
+	'R': {
+		'binary': ("", str),
+		'cran_mirror': ("http://cran.rstudio.com/", str),
+		'bioc_mirror': ("", str)
+	}
+}

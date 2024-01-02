@@ -10,10 +10,12 @@ from PySide6.QtSvgWidgets import *
 
 from utils import *
 from config import *
+from threads import *
 
 __all__ = ['RNASuitePackageInstallButton', 'RNASuiteWaitingSpinner',
 	'RNASuitePackageTreeView', 'RNASuitePackageInstallMessage',
-	'RNASuiteSpacerWidget', 'RNASuiteMultipleSelect'
+	'RNASuiteSpacerWidget', 'RNASuiteMultipleSelect',
+	'RNASuiteRGeneralSettingPage'
 ]
 
 class RNASuiteSpacerWidget(QWidget):
@@ -160,8 +162,8 @@ class RNASuitePackageTreeView(QTreeView):
 		self.header().setStretchLastSection(False)
 
 		self.get_rscript()
-		self.get_versions()
 		self.create_model()
+		self.update_tree()
 
 		self.task = None
 
@@ -180,33 +182,6 @@ class RNASuitePackageTreeView(QTreeView):
 		if not os.path.isfile(self.rscript):
 			self.on_error_occurred("Could not find Rscript: {}".format(self.rscript))
 
-	def get_versions(self):
-		self.packages = RNASuitePackages()
-		rcode = (
-			"rv<-list(name='R', ver=packageVersion('base'));"
-			"write.table(rv, sep='\t', quote=F, row.names=F, col.names=F);"
-			"ps<-installed.packages();"
-			"ps<-ps[,c('Package','Version')];"
-			"write.table(ps, sep='\t', quote=F, row.names=F, col.names=F)"
-		)
-		proc = QProcess()
-		proc.errorOccurred.connect(self.on_error_occurred)
-		proc.start(self.rscript, ['-e', rcode])
-		proc.waitForFinished()
-		res = proc.readAllStandardOutput()
-		lines = res.data().decode()
-		versions = {}
-
-		for line in lines.split('\n'):
-			if line.strip():
-				p, v = line.split()
-				versions[p.lower()] = v
-
-		for c in self.packages.get_order():
-			for p in self.packages[c]:
-				p.version = versions.get(p.name.lower(), '')
-				p.status = compare_version(p.required, p.version)
-
 	def update_colum_width(self):
 		self.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
 		self.header().setSectionResizeMode(1, QHeaderView.Stretch)
@@ -219,12 +194,26 @@ class RNASuitePackageTreeView(QTreeView):
 	def create_model(self):
 		self._model = QStandardItemModel(self)
 		self.setModel(self._model)
-		self.update_data()
 
-	def update_data(self):
+	def update_tree(self):
+		thread = RNASuitePackageVersionThread(self)
+		thread.started.connect(self.on_task_started)
+		thread.finished.connect(self.on_update_finished)
+		thread.result.connect(self.update_data)
+		thread.start()
+
+	def update_data(self, versions):
 		self._model.setHorizontalHeaderLabels([
 			'Name', 'Description', 'Required', 'Version', 'Status'
 		])
+
+		self.packages = RNASuitePackages()
+
+		for c in self.packages.get_order():
+			for p in self.packages[c]:
+				p.version = versions.get(p.name.lower(), '')
+				p.status = compare_version(p.required, p.version)
+
 		root = self._model.invisibleRootItem()
 		for c in self.packages.get_order():
 			parent = QStandardItem(c)
@@ -268,6 +257,10 @@ class RNASuitePackageTreeView(QTreeView):
 		self.started.emit()
 
 	@Slot()
+	def on_update_finished(self):
+		self.stopped.emit()
+
+	@Slot()
 	def on_task_finished(self, exit_code):
 		self.stopped.emit()
 		
@@ -292,13 +285,26 @@ class RNASuitePackageTreeView(QTreeView):
 			self.error.emit("A pakcage installation is running")
 			return
 
+		settings = QSettings()
+		default, convert = RNASUITE_SETTINGS['R']['cran_mirror']
+		cran_mirror = settings.value('R/cran_mirror', default, convert)
+		default, convert = RNASUITE_SETTINGS['R']['cran_mirror']
+		bioc_mirror = settings.value('R/bioc_mirror', default, convert)
+
 		rcode = None
 		if package == 'R':
 			QDesktopServices.openUrl("https://www.r-project.org/")
 		elif repository == 'CRAN':
-			rcode = "install.packages('{}')".format(package)
+			rcode = (
+				"options(repos=c(CRAN='{}'));"
+				"install.packages('{}')"
+			).format(cran_mirror, package)
 		elif repository == 'Bioconductor':
-			rcode = "if (!require('BiocManager',quietly=TRUE)){{install.packages('BiocManager')}}; BiocManager::install('{}');".format(package)
+			rcode = (
+				"options(BioC_mirror='{}');"
+				"if (!require('BiocManager',quietly=TRUE)){{install.packages('BiocManager')}};"
+				"BiocManager::install('{}');"
+			).format(bioc_mirror, package)
 
 		if rcode is None:
 			return
@@ -311,7 +317,7 @@ class RNASuitePackageTreeView(QTreeView):
 		self.task.finished.connect(self.on_task_finished)
 		self.task.readyReadStandardOutput.connect(self.on_task_output_ready)
 		self.task.readyReadStandardError.connect(self.on_task_error_ready)
-		self.task.start(self.rscript, ['-e', rcode])
+		self.task.start(self.rscript, ['-e', rcode])		
 
 	def task_running(self):
 		if self.task:
@@ -327,9 +333,8 @@ class RNASuitePackageTreeView(QTreeView):
 
 	@Slot()
 	def update_version(self):
-		self.get_versions()
 		self._model.clear()
-		self.update_data()
+		self.update_tree()
 
 class RNASuitePackageInstallMessage(QTextBrowser):
 	def __init__(self, parent=None):
@@ -388,3 +393,196 @@ class RNASuiteMultipleSelect(QComboBox):
 			for item in self._model.findItems(val):
 				item.setCheckState(Qt.Checked)
 
+class RNASuiteBrowseLineEdit(QWidget):
+	text_changed = Signal(str)
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+	
+		self.input = QLineEdit(self)
+		self.input.setReadOnly(True)
+		self.browse = QPushButton(self)
+		self.browse.setFlat(True)
+		self.browse.setIcon(QIcon("icons/folder.svg"))
+
+		self.input.textChanged.connect(self.on_text_chanaged)
+		self.browse.clicked.connect(self.select_file)
+
+		layout = QHBoxLayout()
+		layout.setSpacing(0)
+		layout.setContentsMargins(0,0,0,0)
+		layout.addWidget(self.input)
+		layout.addWidget(self.browse)
+
+		self.setLayout(layout)
+
+	@Slot()
+	def on_text_chanaged(self, text):
+		self.text_changed.emit(text)
+
+	@Slot()
+	def select_file(self):
+		pfile, _ = QFileDialog.getOpenFileName(self)
+
+		if pfile:
+			self.input.setText(pfile)
+
+	def get_text(self):
+		return self.input.text()
+
+	def set_text(self, text):
+		self.input.setText(text)
+
+class RNASuiteGlobalSettingPage(QWidget):
+	section = None
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.settings = QSettings()
+		self.layout = QVBoxLayout()
+		self.setLayout(self.layout)
+		self.widgets = AttrDict()
+		self.register_widgets()
+		self.register_events()
+		self.read_settings()
+
+	@property
+	def params(self):
+		pass
+
+	def register_widget(self, key, label, widget):
+		self.widgets[key] = widget
+
+		if label is not None:
+			self.layout.addWidget(label)
+
+		self.layout.addWidget(widget)
+
+	def register_widgets(self):
+		for p in self.params:
+			if p.label is not None:
+				label = QLabel(p.label, self)
+			else:
+				label = None
+
+			if p.type == QFile:
+				widget = RNASuiteBrowseLineEdit(self)
+			elif p.type == str:
+				widget = QLineEdit(self)
+			elif p.type == list:
+				widget = QListWidget(self)
+			elif p.type == bool:
+				widget = QCheckBox(p.text, self)
+				
+			self.register_widget(p.option, label, widget)
+
+	def register_events(self):
+		pass
+
+	def read_settings(self):
+		params = RNASUITE_SETTINGS[self.section]
+
+		for param in params:
+			default, convert = params[param]
+			key = "{}/{}".format(self.section, param)
+			value = self.settings.value(key, default, convert)
+			widget = self.widgets[param]
+
+			if isinstance(widget, QLineEdit):
+				widget.setText(value)
+			elif isinstance(widget, RNASuiteBrowseLineEdit):
+				widget.set_text(value)
+
+	def write_settings(self):
+		params = RNASUITE_SETTINGS[self.section]
+
+		for param in params:
+			key = "{}/{}".format(self.section, param)
+			widget = self.widgets[param]
+
+			if isinstance(widget, QLineEdit):
+				value = widget.text()
+			elif isinstance(widget, RNASuiteBrowseLineEdit):
+				value = widget.get_text()
+
+			self.settings.setValue(key, value)
+
+	def restore_settings(self):
+		params = RNASUITE_SETTINGS[self.section]
+
+		for param in params:
+			default, _ = params[param]
+			widget = self.widgets[param]
+
+			if isinstance(widget, QLineEdit):
+				widget.setText(default)
+			elif isinstance(widget, RNASuiteBrowseLineEdit):
+				widget.set_text(default)
+
+class RNASuiteRGeneralSettingPage(RNASuiteGlobalSettingPage):
+	section = 'R'
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.settings = QSettings()
+		self.layout = QVBoxLayout()
+		self.setLayout(self.layout)
+
+	@property
+	def params(self):
+		return [
+			AttrDict(
+				option = 'binary',
+				type = QFile,
+				label = "Change R Binary"
+			),
+			AttrDict(
+				option = 'cran_mirror',
+				type = str,
+				label = "CRAN Mirror"
+			),
+			AttrDict(
+				option = 'mirror_list',
+				type = list,
+				label = None
+			),
+			AttrDict(
+				option = 'mirror_custom',
+				type = bool,
+				text = "Allow custom cran mirror",
+				label = None
+			),
+			AttrDict(
+				option = 'bioc_mirror',
+				type = str,
+				label = "Bioconductor Mirror"
+			)
+		]
+
+	def register_events(self):
+		self.widgets.cran_mirror.setReadOnly(True)
+		self.widgets.mirror_custom.stateChanged.connect(self.on_custom_canr_mirror)
+		self.load_cran_mirrors()
+
+	def on_custom_canr_mirror(self, flag):
+		self.widgets.cran_mirror.setReadOnly(not flag)
+
+	def update_cran_mirrors(self, rows):
+		self.mirror_urls = {}
+
+		for i, row in enumerate(rows[1:-1]):
+			cols = row.split('\t')
+			item = QListWidgetItem("{} - {}".format(cols[1], cols[5]))
+			self.mirror_urls[i] = cols[4]
+			self.widgets.mirror_list.addItem(item)
+
+	@Slot()
+	def on_mirror_changed(self, index):
+		url = self.mirror_urls.get(index, '')
+		self.widgets.cran_mirror.setText(url)
+
+	def load_cran_mirrors(self):
+		self.widgets.mirror_list.currentRowChanged.connect(self.on_mirror_changed)
+		thread = RNASuiteCranMirrorThread(self)
+		thread.result.connect(self.update_cran_mirrors)
+		thread.start()

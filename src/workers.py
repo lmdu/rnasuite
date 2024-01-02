@@ -6,7 +6,8 @@ from rchitect import *
 
 from PySide6.QtCore import *
 
-__all__ = ['RNASuiteDEGWorker', 'RNASuiteShowDEGWorker']
+__all__ = ['RNASuiteDEGWorker', 'RNASuiteShowDEGWorker',
+]
 
 class RNASuiteBaseWorker(QObject):
 	error = Signal(str)
