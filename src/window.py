@@ -453,7 +453,7 @@ class RNASuiteMainWindow(QMainWindow):
 		if self.has_none_deg_data():
 			return
 
-		defines = self.stored_params.get('degs', {})
+		defines = self.stored_params.get('deseq', {})
 		samples = self.table_widgets.get_data('sample_info')
 		dataset = {c: list(samples[c].unique()) for c in samples.columns}
 		params = RNASuiteDeseqParameterDialog.get_params(self, defines, dataset)
@@ -463,9 +463,9 @@ class RNASuiteMainWindow(QMainWindow):
 
 		read_counts = self.table_widgets.get_tight('read_count')
 		sample_info = self.table_widgets.get_tight('sample_info')
-		worker = RNASuiteDEGWorker(self, read_counts, sample_info, params)
+		worker = RNASuiteDeseqDEGWorker(self, read_counts, sample_info, params)
 		self.run_analysis_worker(worker)
-		self.stored_params['degs'] = params
+		self.stored_params['deseq'] = params
 
 	@Slot()
 	def do_identify_degs_by_edger(self):
@@ -475,13 +475,19 @@ class RNASuiteMainWindow(QMainWindow):
 		if self.has_none_deg_data():
 			return
 
-		defines = self.stored_params.get('degs', {})
+		defines = self.stored_params.get('edger', {})
 		samples = self.table_widgets.get_data('sample_info')
 		dataset = {c: list(samples[c].unique()) for c in samples.columns}
 		params = RNASuiteEdgerParameterDialog.get_params(self, defines, dataset)
 
 		if not params:
 			return
+
+		read_counts = self.table_widgets.get_tight('read_count')
+		sample_info = self.table_widgets.get_tight('sample_info')
+		worker = RNASuiteEdgerDEGWorker(self, read_counts, sample_info, params)
+		self.run_analysis_worker(worker)
+		self.stored_params['edger'] = params
 
 	def has_none_identified_degs(self):
 		if 'degs' not in self.stored_params or not self.table_widgets.has_table('degs_list'):

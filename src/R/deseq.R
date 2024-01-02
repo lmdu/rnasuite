@@ -4,6 +4,7 @@
 #@param float deseq_fdr, FDR value for deg identification
 #@param float deseq_logfc, log2foldchange for deg identification
 #@param list deseq_contrast, results for which groups comparison
+library(DESeq2)
 
 deseq_identify_degs <- function() {
 	#convert to integer

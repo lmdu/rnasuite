@@ -6,12 +6,14 @@ from rchitect import *
 
 from PySide6.QtCore import *
 
-__all__ = ['RNASuiteDEGWorker', 'RNASuiteShowDEGWorker',
+__all__ = ['RNASuiteEdgerDEGWorker', 'RNASuiteDeseqDEGWorker',
+	'RNASuiteShowDEGWorker',
 ]
 
-class RNASuiteBaseWorker(QObject):
+class RNASuiteBaseDEGWorker(QObject):
 	error = Signal(str)
 	finish = Signal()
+	script = None
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -27,11 +29,21 @@ class RNASuiteBaseWorker(QObject):
 				'value': val
 			})
 
+	def load_script(self):
+		with open(self.script) as fs:
+			code = fs.read()
+
+		self.parent.pyconn.send({
+			'action': 'eval',
+			'code': code
+		})
+
 	def run(self):
 		pass
 
 	def start(self):
 		try:
+			self.load_script()
 			self.prepare_data()
 			self.run()
 		except:
@@ -39,7 +51,9 @@ class RNASuiteBaseWorker(QObject):
 		finally:
 			self.finish.emit()
 
-class RNASuiteDEGWorker(RNASuiteBaseWorker):
+class RNASuiteDeseqDEGWorker(RNASuiteBaseDEGWorker):
+	script = 'R/deseq.R'
+
 	def __init__(self, parent, read_counts, sample_info, params, gene_names=None):
 		super().__init__(parent)
 		self.parent = parent
@@ -60,7 +74,34 @@ class RNASuiteDEGWorker(RNASuiteBaseWorker):
 			'func': 'deseq_analysis_pipeline'
 		})
 
-class RNASuiteShowDEGWorker(RNASuiteBaseWorker):
+class RNASuiteEdgerDEGWorker(RNASuiteBaseDEGWorker):
+	script = 'R/edger.R'
+
+	def __init__(self, parent, read_counts, sample_info, params, gene_names=None):
+		super().__init__(parent)
+		self.parent = parent
+
+		self.data_mapping = {
+			'read_counts': read_counts,
+			'sample_info': sample_info,
+			'edger_design': params['design'],
+			'edger_fdr': params['fdr'],
+			'edger_logfc': params['lgfc'],
+			'edger_group': params['compare'],
+			'edger_replicate': params['replicate'],
+			'edger_method': params['method'],
+			'edger_bcv': params['bcv'],
+			'edger_contrast': [params['treatment'], params['control']]
+		}
+
+	def run(self):
+		self.parent.pyconn.send({
+			'action': 'call',
+			'rtype': 'degs',
+			'func': 'edger_analysis_pipeline'
+		})
+
+class RNASuiteShowDEGWorker(RNASuiteBaseDEGWorker):
 	def __init__(self, parent, params):
 		super().__init__(parent)
 		self.parent = parent

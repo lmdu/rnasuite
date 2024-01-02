@@ -243,12 +243,21 @@ class RNASuiteParameterDialog(QDialog):
 		for k, w in self.widgets.items():
 			if isinstance(w, QAbstractSpinBox):
 				params[k] = w.value()
+
 			elif isinstance(w, QLineEdit):
 				params[k] = w.text().strip()
+
 			elif isinstance(w, QComboBox):
-				params[k] = w.currentText()
+				p = self.parameters[k]
+
+				if p.index:
+					params[k] = w.currentIndex()
+				else:
+					params[k] = w.currentText()
+
 			elif isinstance(w, RNASuiteMultipleSelect):
 				params[k] = w.get_text()
+
 			elif isinstance(w, QCheckBox):
 				params[k] = w.checkState() == Qt.Checked
 

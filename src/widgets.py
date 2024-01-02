@@ -561,6 +561,7 @@ class RNASuiteRGeneralSettingPage(RNASuiteGlobalSettingPage):
 
 	def register_events(self):
 		self.widgets.cran_mirror.setReadOnly(True)
+		self.widgets.mirror_list.addItem(QListWidgetItem("Loading cran mirrors..."))
 		self.widgets.mirror_custom.stateChanged.connect(self.on_custom_canr_mirror)
 		self.load_cran_mirrors()
 
@@ -569,6 +570,7 @@ class RNASuiteRGeneralSettingPage(RNASuiteGlobalSettingPage):
 
 	def update_cran_mirrors(self, rows):
 		self.mirror_urls = {}
+		self.widgets.mirror_list.clear()
 
 		for i, row in enumerate(rows[1:-1]):
 			cols = row.split('\t')

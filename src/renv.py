@@ -99,7 +99,7 @@ class RNASuiteREnvironment(multiprocessing.Process):
 
 		self.load_httpgd()
 		self.load_reticulate()
-		self.load_package('DESeq2')
+		#self.load_package('DESeq2')
 
 	def run(self):
 		self.start_r_env()
@@ -107,6 +107,7 @@ class RNASuiteREnvironment(multiprocessing.Process):
 		while True:
 			try:
 				data = self.rconn.recv()
+
 			except EOFError:
 				break
 
@@ -116,8 +117,10 @@ class RNASuiteREnvironment(multiprocessing.Process):
 						if data['dataframe']:
 							data['value'] = pandas.DataFrame.from_dict(data['value'], orient='tight')
 							rchitect.rcall('send_df_to_r', data['variable'], data['value'])
+
 						else:
 							rchitect.rcall('send_val_to_r', data['variable'], data['value'])
+
 					except:
 						self.send('error', traceback.format_exc())
 
@@ -128,14 +131,17 @@ class RNASuiteREnvironment(multiprocessing.Process):
 
 						if isinstance(ret, pandas.DataFrame):
 							ret = ret.to_dict(orient='tight')
+
 						elif isinstance(ret, dict):
 							for k, v in ret.items():
 								if isinstance(v, pandas.DataFrame):
 									ret[k] = v.to_dict(orient='tight')
 
 						self.send('result', data['rtype'], ret)
+
 					except:
 						self.send('error', traceback.format_exc())
+
 					finally:
 						self.send('running', data=False)
 
@@ -144,8 +150,10 @@ class RNASuiteREnvironment(multiprocessing.Process):
 						self.send('running', data=True)
 						ret = rchitect.rcopy(rchitect.reval(data['code']))
 						#self.send('result', ret)
+
 					except:
 						self.send('error', traceback.format_exc())
+
 					finally:
 						self.send('running', data=False)
 
@@ -153,6 +161,7 @@ class RNASuiteREnvironment(multiprocessing.Process):
 					try:
 						ret = rchitect.rcopy(rchitect.rcall('hgd_plot', **data['params']))
 						self.send('plot', ret)
+
 					except:
 						self.send('error', traceback.format_exc())
 
@@ -180,6 +189,7 @@ class RNASuiteRMessageProcessor(QThread):
 		while True:
 			try:
 				data = self.parent.pyconn.recv()
+
 			except EOFError:
 				break
 
@@ -201,7 +211,7 @@ class RNASuiteRMessageProcessor(QThread):
 
 				case 'result':
 					self.results.emit(data['content'], data['data'])
-				
+
 				case 'socket':
 					self.socket.emit()
 

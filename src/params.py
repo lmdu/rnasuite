@@ -38,28 +38,32 @@ RNASuiteDEGParameters = RNASuiteParameters(
 		type = list,
 		options = [],
 		display = 'Comparison between:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'control',
 		type = list,
 		options = [],
 		display = 'Control group:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'treatment',
 		type = list,
 		options = [],
 		display = 'Treatment group:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'eliminate',
 		type = set,
 		options = [],
 		display = 'Eliminate effect of factors:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'design',
@@ -97,28 +101,32 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 		type = list,
 		options = [],
 		display = 'Comparison between:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'control',
 		type = list,
 		options = [],
 		display = 'Control group:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'treatment',
 		type = list,
 		options = [],
 		display = 'Treatment group:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'eliminate',
 		type = set,
 		options = [],
 		display = 'Considering effect of factors:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'design',
@@ -137,7 +145,8 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 		type = list,
 		options = ['Biological Replicates', 'No Biological Replicates'],
 		display = "Use edgeR with:",
-		default = None
+		default = None,
+		index = True
 	),
 	AttrDict(
 		key = 'bcv',
@@ -156,7 +165,8 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 			"Classic exact test"
 		],
 		display = "Testing method:",
-		default = None
+		default = None,
+		index = True
 	)
 )
 
@@ -182,13 +192,15 @@ RNASuiteShowDEGParameters = RNASuiteParameters(
 		type = list,
 		options = [],
 		display = 'Control group:',
-		default = None
+		default = None,
+		index = False
 	),
 	AttrDict(
 		key = 'treatment',
 		type = list,
 		options = [],
 		display = 'Treatment group:',
-		default = None
+		default = None,
+		index = False
 	)
 )
