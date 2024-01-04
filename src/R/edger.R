@@ -3,7 +3,7 @@
 #@param str edger_design, design formula for deg identification
 #@param float edger_fdr, FDR value for deg identification
 #@param float edger_logfc, log2foldchange for deg identification
-#@param str edger_group, find DEGs between given group
+#@param str edger_compare, find DEGs between given group
 #@param int edger_replicate, 0 for with biological replicates, 1 for with on replicates
 #@param int edger_method, 0 for quasi-likelihood (QL) F-test, 1 for likelihood ratio test, 2 for exact test
 #@param list edger_contrast, results for which groups comparison
@@ -14,10 +14,15 @@ edger_data_prepare <- function() {
 	#convert to integer
 	read_counts <- round(read_counts)
 
-	#get comparison group information
-	info <- sample_info[colnames(read_counts),]
+	#get intersect sample names
+	sample_names <- intersect(colnames(read_counts), rownames(sample_info))
 
-	groups <- info[, edger_group]
+	#remove uncovered samples
+	read_counts <- read_counts[, sample_names]
+	sample_info <- sample_info[sample_names, ]
+
+	#get comparison group information
+	groups <- sample_info[, edger_compare]
 
 	#make deg list with group
 	y <- DGEList(counts=read_counts, group=groups)
@@ -30,9 +35,8 @@ edger_data_prepare <- function() {
 	y <- normLibSizes(y)
 
 	#make edgeR design matrix
-	edger_model <<- model.matrix(as.formula(edger_design), data=info)
-	#colnames(edger_design) <- levels(y$samples$group)
-	colnames(edger_model) <- gsub(paste0('^', edger_group), '', colnames(edger_model))
+	edger_model <<- model.matrix(as.formula(edger_design), data=sample_info)
+	colnames(edger_model) <<- gsub(paste0('^', edger_compare), '', colnames(edger_model))
 
 	#estimate common dispersion and tagwise dispersions
 	if (edger_replicate == 0) {
@@ -47,8 +51,7 @@ edger_data_prepare <- function() {
 }
 
 edger_make_contrast <- function() {
-	cmp <- paste(edger_contrast, collapse='-')
-	con <- makeContrasts(cmp, levels=edger_model)
+	con <- makeContrasts(paste(edger_contrast, collapse='-'), levels=edger_model)
 	return(con)
 }
 
@@ -58,7 +61,7 @@ edger_with_replicates <- function() {
 
 		if (edger_method == 0) {
 			fit <- glmQLFit(edger_count, edger_model)
-			edger_degs <<- glmQLTest(fit, contrast=con)
+			edger_degs <<- glmQLFTest(fit, contrast=con)
 		} else {
 			fit <- glmFit(edger_count, edger_model)
 			edger_degs <<- glmLRT(fit, contrast=con)
@@ -87,20 +90,26 @@ edger_identify_degs <- function() {
 }
 
 edger_sig_degs <- function() {
-	sig <- topTags(et, n=Inf)
-	sig_degs <<- sig$table[sig$table$FDR < edger_fdr & sig$table$logFC>=edger_logfc,]
+	sig <- topTags(edger_degs, n=Inf)
+	sig_degs <<- sig$table[sig$table$FDR < edger_fdr & abs(sig$table$logFC)>=edger_logfc, ]
 }
 
 edger_plot_degs <- function() {
-	tags <- sig_degs[,1]
+	tags <- rownames(sig_degs)
 	plotSmear(edger_degs, de.tags=tags)
+}
+
+edger_normalized_counts <- function() {
+	norm_counts <- as.data.frame(cpm(edger_count))
+	norm_counts <- r_to_py(norm_counts)
+	return(norm_counts)
 }
 
 edger_return_degs <- function() {
 	out <- list(
-		normal_count = cpm(edger_count),
-		degs_list = sig_degs,
-		degs_versus = deseq_contrast
+		normal_count = edger_normalized_counts(),
+		degs_list = r_to_py(sig_degs),
+		degs_versus = edger_contrast
 	)
 	return(out)
 }
@@ -114,5 +123,12 @@ edger_analysis_pipeline <- function() {
 }
 
 edger_show_degs <- function() {
-
+	edger_identify_degs()
+	edger_sig_degs()
+	edger_plot_degs()
+	out <- list(
+		degs_list = r_to_py(sig_degs),
+		degs_versus = edger_contrast
+	)
+	return(out)
 }

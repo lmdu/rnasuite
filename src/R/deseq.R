@@ -37,7 +37,7 @@ deseq_plot_degs <- function() {
 
 deseq_sig_degs <- function() {
 	sig_degs <- na.omit(deseq_degs)
-	sig_degs <- sig_degs[(sig_degs$padj < deseq_fdr & abs(sig_degs$log2FoldChange) > deseq_logfc), ]
+	sig_degs <- sig_degs[(sig_degs$padj < deseq_fdr & abs(sig_degs$log2FoldChange) >= deseq_logfc), ]
 	sig_degs <- sig_degs[order(sig_degs$padj), ]
 	sig_degs <- r_to_py(as.data.frame(sig_degs))
 	return(sig_degs)

@@ -194,12 +194,14 @@ class RNASuiteParameterDialog(QDialog):
 				self.widgets[p.key].setRange(*p.range)
 				self.widgets[p.key].setSingleStep(p.step)
 				self.widgets[p.key].setValue(val)
+
 			elif p.type == float:
 				self.widgets[p.key] = QDoubleSpinBox(self)
 				self.widgets[p.key].setRange(*p.range)
 				self.widgets[p.key].setSingleStep(p.step)
 				self.widgets[p.key].setDecimals(5)
 				self.widgets[p.key].setValue(val)
+
 			elif p.type == str:
 				self.widgets[p.key] = QLineEdit(self)
 
@@ -210,7 +212,10 @@ class RNASuiteParameterDialog(QDialog):
 				self.widgets[p.key] = QComboBox(self)
 				self.widgets[p.key].addItems(p.options)
 
-				if val:
+				if isinstance(val, int):
+					self.widgets[p.key].setCurrentIndex(val)
+
+				elif val:
 					self.widgets[p.key].setCurrentText(val)
 
 			elif p.type == bool:

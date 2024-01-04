@@ -95,7 +95,7 @@ class RNASuiteMainWindow(QMainWindow):
 		if rtype == 'degs':
 			for k, v in res.items():
 				if k == 'degs_versus':
-					title = "DEGs ({} vs {})".format(v[1], v[2])
+					title = "DEGs ({} vs {})".format(v[-2], v[-1])
 					self.table_widgets.set_title('degs_list', title)
 				else:
 					table = self.table_widgets.get_table(k)
@@ -453,7 +453,7 @@ class RNASuiteMainWindow(QMainWindow):
 		if self.has_none_deg_data():
 			return
 
-		defines = self.stored_params.get('deseq', {})
+		defines = self.stored_params.get('degs', {})
 		samples = self.table_widgets.get_data('sample_info')
 		dataset = {c: list(samples[c].unique()) for c in samples.columns}
 		params = RNASuiteDeseqParameterDialog.get_params(self, defines, dataset)
@@ -465,7 +465,8 @@ class RNASuiteMainWindow(QMainWindow):
 		sample_info = self.table_widgets.get_tight('sample_info')
 		worker = RNASuiteDeseqDEGWorker(self, read_counts, sample_info, params)
 		self.run_analysis_worker(worker)
-		self.stored_params['deseq'] = params
+		params['tool'] = 'deseq'
+		self.stored_params['degs'] = params
 
 	@Slot()
 	def do_identify_degs_by_edger(self):
@@ -475,7 +476,7 @@ class RNASuiteMainWindow(QMainWindow):
 		if self.has_none_deg_data():
 			return
 
-		defines = self.stored_params.get('edger', {})
+		defines = self.stored_params.get('degs', {})
 		samples = self.table_widgets.get_data('sample_info')
 		dataset = {c: list(samples[c].unique()) for c in samples.columns}
 		params = RNASuiteEdgerParameterDialog.get_params(self, defines, dataset)
@@ -487,7 +488,8 @@ class RNASuiteMainWindow(QMainWindow):
 		sample_info = self.table_widgets.get_tight('sample_info')
 		worker = RNASuiteEdgerDEGWorker(self, read_counts, sample_info, params)
 		self.run_analysis_worker(worker)
-		self.stored_params['edger'] = params
+		params['tool'] = 'edger'
+		self.stored_params['degs'] = params
 
 	def has_none_identified_degs(self):
 		if 'degs' not in self.stored_params or not self.table_widgets.has_table('degs_list'):
@@ -516,6 +518,7 @@ class RNASuiteMainWindow(QMainWindow):
 			return
 
 		params['compare'] = defines['compare']
+		params['tool'] = defines['tool']
 		worker = RNASuiteShowDEGWorker(self, params)
 		self.run_analysis_worker(worker)
 

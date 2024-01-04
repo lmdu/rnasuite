@@ -30,6 +30,9 @@ class RNASuiteBaseDEGWorker(QObject):
 			})
 
 	def load_script(self):
+		if self.script is None:
+			return
+
 		with open(self.script) as fs:
 			code = fs.read()
 
@@ -87,7 +90,7 @@ class RNASuiteEdgerDEGWorker(RNASuiteBaseDEGWorker):
 			'edger_design': params['design'],
 			'edger_fdr': params['fdr'],
 			'edger_logfc': params['lgfc'],
-			'edger_group': params['compare'],
+			'edger_compare': params['compare'],
 			'edger_replicate': params['replicate'],
 			'edger_method': params['method'],
 			'edger_bcv': params['bcv'],
@@ -105,16 +108,33 @@ class RNASuiteShowDEGWorker(RNASuiteBaseDEGWorker):
 	def __init__(self, parent, params):
 		super().__init__(parent)
 		self.parent = parent
+		self.tool = params['tool']
 
-		self.data_mapping = {
-			'deseq_fdr': params['fdr'],
-			'deseq_logfc': params['lgfc'],
-			'deseq_contrast': [params['compare'], params['treatment'], params['control']]
-		}
+		if self.tool == 'deseq':
+			self.data_mapping = {
+				'deseq_fdr': params['fdr'],
+				'deseq_logfc': params['lgfc'],
+				'deseq_contrast': [
+					params['compare'],
+					params['treatment'],
+					params['control']
+				]
+			}
+
+		elif self.tool == 'edger':
+			self.data_mapping = {
+				'edger_fdr': params['fdr'],
+				'edger_logfc': params['lgfc'],
+				'edger_contrast': [
+					params['treatment'],
+					params['control']
+				]
+			}
 
 	def run(self):
+		func = '{}_show_degs'.format(self.tool)
 		self.parent.pyconn.send({
 			'action': 'call',
 			'rtype': 'degs',
-			'func': 'deseq_show_degs'
+			'func': func
 		})
