@@ -15,13 +15,56 @@ from threads import *
 __all__ = ['RNASuitePackageInstallButton', 'RNASuiteWaitingSpinner',
 	'RNASuitePackageTreeView', 'RNASuitePackageInstallMessage',
 	'RNASuiteSpacerWidget', 'RNASuiteMultipleSelect',
-	'RNASuiteRGeneralSettingPage'
+	'RNASuiteRGeneralSettingPage', 'RNASuiteColorButton'
 ]
 
 class RNASuiteSpacerWidget(QWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+#from https://www.pythonguis.com/widgets/qcolorbutton-a-color-selector-tool-for-pyqt/
+class RNASuiteColorButton(QPushButton):
+	color_changed = Signal(tuple)
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+
+		self._color = None
+		self._default = '#ffffff'
+		self.pressed.connect(self.on_select_color)
+		self.set_color(self._default)
+		self.setFixedSize(QSize(15, 12))
+
+	def set_color(self, color):
+		if color != self._color:
+			self._color = color
+			self.color_changed.emit(QColor(color).getRgbF()[0:3])
+
+		if self._color:
+			self.setStyleSheet("background-color: {}".format(self._color))
+
+		else:
+			self.setStyleSheet("")
+
+	def get_color(self):
+		return self._color
+
+	@Slot()
+	def on_select_color(self):
+		dlg = QColorDialog()
+
+		if self._color:
+			dlg.setCurrentColor(QColor(self._color))
+
+		if dlg.exec():
+			self.setColor(dlg.currentColor().name())
+
+	def mousePressEvent(self, event):
+		if event.button() == Qt.RightButton:
+			self.set_color(self._default)
+
+		return super().mousePressEvent(event)
 
 #from https://github.com/z3ntu/QtWaitingSpinner
 class RNASuiteWaitingSpinner(QWidget):

@@ -1,10 +1,10 @@
 from utils import *
 
 __all__ = ['RNASuiteDEGParameters', 'RNASuiteShowDEGParameters',
-	'RNASuiteEdgerParameters'
+	'RNASuiteEdgerParameters', 'RNASuiteDEGDistPlotParameters'
 ]
 
-class RNASuiteParameters():
+class RNASuiteParameters:
 	def __init__(self, *args):
 		self.params = args
 		self.mapping = {p.key: i for i, p in enumerate(self.params)}
@@ -202,5 +202,41 @@ RNASuiteShowDEGParameters = RNASuiteParameters(
 		display = 'Treatment group:',
 		default = None,
 		index = False
+	)
+)
+
+RNASuiteDEGDistPlotParameters = RNASuiteParameters(
+	AttrDict(
+		key = 'contrasts',
+		type = 'text',
+		default = None,
+		display = 'Contrasts:',
+		help = (
+			"Multiple contrasts should be separated by commas,<br>"
+			"example: treatment1 vs control, treatment2 vs control"
+		)
+	),
+	AttrDict(
+		key = 'plot',
+		type = list,
+		options = [
+			'Stacked bar plot',
+			'Grouped bar plot'
+		],
+		display = "Plot type:",
+		default = None,
+		index = True
+	),
+	AttrDict(
+		key = 'up',
+		type = 'color',
+		display = "Up-regulated:",
+		default = '#e41a1c'
+	),
+	AttrDict(
+		key = 'down',
+		type = 'color',
+		display = "Down-regulated:",
+		default = '#377eb8'
 	)
 )

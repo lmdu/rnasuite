@@ -13,7 +13,7 @@ from threads import *
 
 __all__ = ['RNASuitePackageManagerDialog', 'RNASuiteDeseqParameterDialog',
 	'RNASuiteShowDEGParameterDialog', 'RNASuiteGlobalSettingDialog',
-	'RNASuiteEdgerParameterDialog'
+	'RNASuiteEdgerParameterDialog', 'RNASuiteDEGDistPlotParameterDialog'
 ]
 
 class RNASuiteGlobalSettingDialog(QDialog):
@@ -82,7 +82,7 @@ class RNASuiteGlobalSettingDialog(QDialog):
 			widget.restore_settings()
 
 class RNASuitePackageManagerDialog(QDialog):
-	def __init__(self, parent):
+	def __init__(self, parent=None):
 		super().__init__(parent)
 
 		self.setWindowTitle("R Package Manager")
@@ -233,11 +233,25 @@ class RNASuiteParameterDialog(QDialog):
 				if val:
 					self.widgets[p.key].set_text(val)
 
-			#label = QLabel(p.display, self)
+			elif p.type == 'text':
+				self.widgets[p.key] = QPlainTextEdit(self)
 
-			#self.widget_layout.addWidget(label, i, 0)
-			#self.widget_layout.addWidget(self.widgets[p.key], i, 1)
+				if val:
+					self.widgets[p.key].appendPlainText(val)
+
+			elif p.type == 'color':
+				self.widgets[p.key] = RNASuiteColorButton(self)
+
+				if val:
+					self.widgets[p.key].set_color(val)
+
+			#label = QLabel(p.display, self)
 			self.widget_layout.addRow(p.display, self.widgets[p.key])
+
+			if 'help' in p:
+				info = QLabel("<font color='gray'>{}</font>".format(p.help), self)
+				#info.setWordWrap(True)
+				self.widget_layout.addRow('', info)
 
 	def register_events(self):
 		pass
@@ -381,3 +395,6 @@ class RNASuiteShowDEGParameterDialog(RNASuiteParameterDialog):
 		self.widgets.treatment.clear()
 		self.widgets.treatment.addItems(groups)
 
+class RNASuiteDEGDistPlotParameterDialog(RNASuiteParameterDialog):
+	parameters = RNASuiteDEGDistPlotParameters
+	title = 'DEG Distribution Plot'

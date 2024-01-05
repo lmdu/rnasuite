@@ -234,6 +234,9 @@ class RNASuiteMainWindow(QMainWindow):
 		self.kegg_enrich_act = QAction("KEGG Enrichment")
 		self.go_enrich_act = QAction("GO Enrichment")
 
+		self.dist_plot_act = QAction("DEGs Distribution plot", self)
+		self.dist_plot_act.triggered.connect(self.do_plot_degs_dist)
+
 		self.exit_act = QAction("Exit", self)
 		self.exit_act.setShortcut(QKeySequence.Quit)
 		self.exit_act.triggered.connect(self.close)
@@ -300,6 +303,7 @@ class RNASuiteMainWindow(QMainWindow):
 		self.enrich_menu.addAction(self.kegg_enrich_act)
 
 		self.plot_menu = self.menuBar().addMenu("&Plots")
+		self.plot_menu.addAction(self.dist_plot_act)
 		
 		self.tool_menu = self.menuBar().addMenu("&Tools")
 		self.tool_menu.addAction(self.install_act)
@@ -521,6 +525,11 @@ class RNASuiteMainWindow(QMainWindow):
 		params['tool'] = defines['tool']
 		worker = RNASuiteShowDEGWorker(self, params)
 		self.run_analysis_worker(worker)
+
+	@Slot()
+	def do_plot_degs_dist(self):
+		params = RNASuiteDEGDistPlotParameterDialog.get_params(self)
+
 
 	@Slot()
 	def on_open_about_dialog(self):
