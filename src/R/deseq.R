@@ -39,7 +39,7 @@ deseq_sig_degs <- function() {
 	sig_degs <- na.omit(deseq_degs)
 	sig_degs <- sig_degs[(sig_degs$padj < deseq_fdr & abs(sig_degs$log2FoldChange) >= deseq_logfc), ]
 	sig_degs <- sig_degs[order(sig_degs$padj), ]
-	sig_degs <- r_to_py(as.data.frame(sig_degs))
+	sig_degs <- as.data.frame(sig_degs)
 	return(sig_degs)
 }
 
@@ -52,7 +52,7 @@ deseq_normalized_counts <- function() {
 deseq_return_degs <- function() {
 	out <- list(
 		normal_count = deseq_normalized_counts(),
-		degs_list = deseq_sig_degs(),
+		degs_list = r_to_py(deseq_sig_degs()),
 		degs_versus = deseq_contrast
 	)
 	return(out)
@@ -62,7 +62,6 @@ deseq_analysis_pipeline <- function() {
 	deseq_identify_degs()
 	deseq_extract_degs()
 	deseq_plot_degs()
-	deseq_sig_degs()
 	deseq_return_degs()
 }
 
@@ -70,7 +69,7 @@ deseq_show_degs <- function() {
 	deseq_extract_degs()
 	deseq_plot_degs()
 	out <- list(
-		degs_list = deseq_sig_degs(),
+		degs_list = r_to_py(deseq_sig_degs()),
 		degs_versus = deseq_contrast
 	)
 	return(out)

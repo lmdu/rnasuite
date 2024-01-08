@@ -58,7 +58,7 @@ class RNASuiteColorButton(QPushButton):
 			dlg.setCurrentColor(QColor(self._color))
 
 		if dlg.exec():
-			self.setColor(dlg.currentColor().name())
+			self.set_color(dlg.currentColor().name())
 
 	def mousePressEvent(self, event):
 		if event.button() == Qt.RightButton:

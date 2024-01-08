@@ -207,7 +207,7 @@ RNASuiteShowDEGParameters = RNASuiteParameters(
 
 RNASuiteDEGDistPlotParameters = RNASuiteParameters(
 	AttrDict(
-		key = 'contrasts',
+		key = 'compares',
 		type = 'text',
 		default = None,
 		display = 'Contrasts:',
@@ -221,22 +221,36 @@ RNASuiteDEGDistPlotParameters = RNASuiteParameters(
 		type = list,
 		options = [
 			'Stacked bar plot',
-			'Grouped bar plot'
+			'Dodged bar plot'
 		],
 		display = "Plot type:",
 		default = None,
 		index = True
 	),
 	AttrDict(
-		key = 'up',
+		key = 'showval',
+		type = bool,
+		display = "Show value labels:",
+		default = False
+	),
+	AttrDict(
+		key = 'rotate',
+		type = int,
+		range = [0, 90],
+		step = 5,
+		display = "X labels rotate angle:",
+		default = 0
+	),
+	AttrDict(
+		key = 'ucolor',
 		type = 'color',
-		display = "Up-regulated:",
+		display = "Up-regulated color:",
 		default = '#e41a1c'
 	),
 	AttrDict(
-		key = 'down',
+		key = 'dcolor',
 		type = 'color',
-		display = "Down-regulated:",
+		display = "Down-regulated color:",
 		default = '#377eb8'
 	)
 )

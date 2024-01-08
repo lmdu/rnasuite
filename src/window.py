@@ -234,8 +234,14 @@ class RNASuiteMainWindow(QMainWindow):
 		self.kegg_enrich_act = QAction("KEGG Enrichment")
 		self.go_enrich_act = QAction("GO Enrichment")
 
-		self.dist_plot_act = QAction("DEGs Distribution plot", self)
+		self.dist_plot_act = QAction("Distribution plot", self)
 		self.dist_plot_act.triggered.connect(self.do_plot_degs_dist)
+
+		self.volcano_plot_act = QAction("Volcano plot", self)
+		self.volcano_plot_act.triggered.connect(self.do_plot_degs_volcano)
+
+		self.ma_plot_act = QAction("MA plot", self)
+		self.ma_plot_act.triggered.connect(self.do_plot_degs_ma)
 
 		self.exit_act = QAction("Exit", self)
 		self.exit_act.setShortcut(QKeySequence.Quit)
@@ -284,7 +290,7 @@ class RNASuiteMainWindow(QMainWindow):
 		self.file_menu.addAction(self.exit_act)
 
 		self.edit_menu = self.menuBar().addMenu("&Edit")
-		self.edit_menu.addAction(self.global_set_act)
+		#self.edit_menu.addAction(self.global_set_act)
 
 		self.view_menu = self.menuBar().addMenu("&View")
 		self.view_menu.addAction(self.input_dock_act)
@@ -303,10 +309,15 @@ class RNASuiteMainWindow(QMainWindow):
 		self.enrich_menu.addAction(self.kegg_enrich_act)
 
 		self.plot_menu = self.menuBar().addMenu("&Plots")
-		self.plot_menu.addAction(self.dist_plot_act)
+		deg_plots = self.plot_menu.addMenu("DEGs")
+		deg_plots.addAction(self.dist_plot_act)
+		deg_plots.addAction(self.volcano_plot_act)
+		deg_plots.addAction(self.ma_plot_act)
 		
 		self.tool_menu = self.menuBar().addMenu("&Tools")
 		self.tool_menu.addAction(self.install_act)
+		self.tool_menu.addSeparator()
+		self.tool_menu.addAction(self.global_set_act)
 
 		self.help_menu = self.menuBar().addMenu("&Help")
 		self.help_menu.addAction(self.about_act)
@@ -528,8 +539,21 @@ class RNASuiteMainWindow(QMainWindow):
 
 	@Slot()
 	def do_plot_degs_dist(self):
-		params = RNASuiteDEGDistPlotParameterDialog.get_params(self)
+		degs_params = self.stored_params.get('degs', {})
+		defines = self.stored_params.get('distplot', {})
+		params = RNASuiteDEGDistPlotParameterDialog.get_params(self, defines)
+		params['tool'] = degs_params['tool']
+		worker = RNASuiteDEGDistPlotWorker(self, params)
+		self.run_analysis_worker(worker)
+		self.stored_params['distplot'] = params
 
+	@Slot()
+	def do_plot_degs_volcano(self):
+		pass
+
+	@Slot()
+	def do_plot_degs_ma(self):
+		pass
 
 	@Slot()
 	def on_open_about_dialog(self):

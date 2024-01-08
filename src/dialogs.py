@@ -274,11 +274,17 @@ class RNASuiteParameterDialog(QDialog):
 				else:
 					params[k] = w.currentText()
 
+			elif isinstance(w, QCheckBox):
+				params[k] = w.checkState() == Qt.Checked
+
+			elif isinstance(w, QPlainTextEdit):
+				params[k] = w.toPlainText()
+
 			elif isinstance(w, RNASuiteMultipleSelect):
 				params[k] = w.get_text()
 
-			elif isinstance(w, QCheckBox):
-				params[k] = w.checkState() == Qt.Checked
+			elif isinstance(w, RNASuiteColorButton):
+				params[k] = w.get_color()
 
 		return params
 
@@ -398,3 +404,10 @@ class RNASuiteShowDEGParameterDialog(RNASuiteParameterDialog):
 class RNASuiteDEGDistPlotParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDEGDistPlotParameters
 	title = 'DEG Distribution Plot'
+
+	def get_param_values(self):
+		params = super().get_param_values()
+		compares = params['compares'].strip().split(',')
+		params['contrasts'] = [comp.strip().split(' vs ') for comp in compares]
+		return params
+
