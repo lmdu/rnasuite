@@ -234,10 +234,16 @@ class RNASuiteMainWindow(QMainWindow):
 		self.kegg_enrich_act = QAction("KEGG Enrichment")
 		self.go_enrich_act = QAction("GO Enrichment")
 
-		self.dist_plot_act = QAction("Distribution plot", self)
+		self.dist_plot_act = QAction("Distribution Plot", self)
 		self.dist_plot_act.triggered.connect(self.do_plot_degs_dist)
 
-		self.volcano_plot_act = QAction("Volcano plot", self)
+		self.venn_plot_act = QAction("Venn Diagram", self)
+		self.venn_plot_act.triggered.connect(self.do_plot_degs_venn)
+
+		self.upset_plot_act = QAction("Upset Plot", self)
+		self.upset_plot_act.triggered.connect(self.do_plot_degs_upset)
+
+		self.volcano_plot_act = QAction("Volcano Plot", self)
 		self.volcano_plot_act.triggered.connect(self.do_plot_degs_volcano)
 
 		self.ma_plot_act = QAction("MA plot", self)
@@ -311,6 +317,9 @@ class RNASuiteMainWindow(QMainWindow):
 		self.plot_menu = self.menuBar().addMenu("&Plots")
 		deg_plots = self.plot_menu.addMenu("DEGs")
 		deg_plots.addAction(self.dist_plot_act)
+		deg_plots.addAction(self.venn_plot_act)
+		deg_plots.addAction(self.upset_plot_act)
+		deg_plots.addSeparator()
 		deg_plots.addAction(self.volcano_plot_act)
 		deg_plots.addAction(self.ma_plot_act)
 		
@@ -540,16 +549,32 @@ class RNASuiteMainWindow(QMainWindow):
 	@Slot()
 	def do_plot_degs_dist(self):
 		degs_params = self.stored_params.get('degs', {})
+		samples = self.table_widgets.get_data('sample_info')
+		dataset = list(samples[degs_params['compare']].unique())
 		defines = self.stored_params.get('distplot', {})
-		params = RNASuiteDEGDistPlotParameterDialog.get_params(self, defines)
+		params = RNASuiteDEGDistPlotParameterDialog.get_params(self, defines, dataset)
 		params['tool'] = degs_params['tool']
 		worker = RNASuiteDEGDistPlotWorker(self, params)
 		self.run_analysis_worker(worker)
 		self.stored_params['distplot'] = params
 
 	@Slot()
-	def do_plot_degs_volcano(self):
+	def do_plot_degs_venn(self):
 		pass
+
+	@Slot()
+	def do_plot_degs_upset(self):
+		pass
+
+	@Slot()
+	def do_plot_degs_volcano(self):
+		degs_params = self.stored_params.get('degs', {})
+		defines = self.stored_params.get('volcanoplot', {})
+		params = RNASuiteDEGVolcanoPlotParameterDialog.get_params(self, defines)
+		params['tool'] = degs_params['tool']
+		worker = RNASuiteDEGVolcanoPlotWorker(self, params)
+		self.run_analysis_worker(worker)
+		self.stored_params['volcanoplot'] = params
 
 	@Slot()
 	def do_plot_degs_ma(self):

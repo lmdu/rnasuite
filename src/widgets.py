@@ -15,7 +15,8 @@ from threads import *
 __all__ = ['RNASuitePackageInstallButton', 'RNASuiteWaitingSpinner',
 	'RNASuitePackageTreeView', 'RNASuitePackageInstallMessage',
 	'RNASuiteSpacerWidget', 'RNASuiteMultipleSelect',
-	'RNASuiteRGeneralSettingPage', 'RNASuiteColorButton'
+	'RNASuiteRGeneralSettingPage', 'RNASuiteColorButton',
+	'RNASuiteContrastVersusWidget'
 ]
 
 class RNASuiteSpacerWidget(QWidget):
@@ -34,7 +35,7 @@ class RNASuiteColorButton(QPushButton):
 		self._default = '#ffffff'
 		self.pressed.connect(self.on_select_color)
 		self.set_color(self._default)
-		self.setFixedSize(QSize(15, 12))
+		self.setFixedSize(QSize(28, 16))
 
 	def set_color(self, color):
 		if color != self._color:
@@ -631,3 +632,101 @@ class RNASuiteRGeneralSettingPage(RNASuiteGlobalSettingPage):
 		thread = RNASuiteCranMirrorThread(self)
 		thread.result.connect(self.update_cran_mirrors)
 		thread.start()
+
+class RNASuiteContrastVersusWidget(QWidget):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.setMinimumSize(QSize(100, 150))
+
+		self.create_widgets()
+		self.set_layouts()
+
+	def create_widgets(self):
+		self.contrast_tree = QTreeWidget(self)
+		self.contrast_tree.setRootIsDecorated(False)
+		self.contrast_tree.setHeaderLabels(['Treatment', 'Control'])
+		self.contrast_tree.header().setSectionResizeMode(QHeaderView.Stretch)
+		self.contrast_tree.setContextMenuPolicy(Qt.CustomContextMenu)
+		self.contrast_tree.customContextMenuRequested.connect(self.show_context_menu)
+		self.treatment_select = QComboBox(self)
+		self.control_select = QComboBox(self)
+		self.versus_label = QLabel('vs', self)
+		self.add_button = QPushButton(self)
+		self.add_button.setText('Add')
+		self.add_button.clicked.connect(self.on_add_clicked)
+
+	def set_layouts(self):
+		top_layout = QHBoxLayout()
+		top_layout.setContentsMargins(0, 0, 0, 0)
+		top_layout.addWidget(self.treatment_select, 1)
+		top_layout.addWidget(self.versus_label)
+		top_layout.addWidget(self.control_select, 1)
+		top_layout.addWidget(self.add_button)
+
+		main_layout = QVBoxLayout()
+		main_layout.setContentsMargins(0, 0, 0, 0)
+		main_layout.addLayout(top_layout)
+		main_layout.addWidget(self.contrast_tree, 1)
+
+		self.setLayout(main_layout)
+
+	@Slot()
+	def show_context_menu(self, pos):
+		item = self.contrast_tree.currentItem()
+
+		del_act = QAction("Delete")
+		del_act.setDisabled(not item)
+		del_act.triggered.connect(self.on_delete_contrast)
+		
+		clr_act = QAction("Clear")
+		clr_act.setDisabled(not item)
+		clr_act.triggered.connect(self.on_clear_contrasts)
+		
+		menu = QMenu(self.contrast_tree)
+		menu.addAction(del_act)
+		menu.addAction(clr_act)
+		menu.exec(self.contrast_tree.mapToGlobal(pos))
+
+	@Slot()
+	def on_delete_contrast(self):
+		item = self.contrast_tree.currentItem()
+
+		if not item:
+			return
+
+		index = self.contrast_tree.indexOfTopLevelItem(item)
+		self.contrast_tree.takeTopLevelItem(index)
+
+	@Slot()
+	def on_clear_contrasts(self):
+		self.contrast_tree.clear()
+
+	@Slot()
+	def on_add_clicked(self):
+		treatment = self.treatment_select.currentText()
+		control = self.control_select.currentText()
+
+		if treatment and control:
+			self.add_contrast(treatment, control)
+
+	def add_contrast(self, treatment, control):
+		item = QTreeWidgetItem(self.contrast_tree)
+		item.setText(0, treatment)
+		item.setText(1, control)
+		self.contrast_tree.addTopLevelItem(item)
+
+	def set_contrasts(self, contrasts):
+		for treatment, control in contrasts:
+			self.add_contrast(treatment, control)
+
+	def get_contrasts(self):
+		contrasts = []
+		for i in range(self.contrast_tree.topLevelItemCount()):
+			item = self.contrast_tree.topLevelItem(i)
+			contrasts.append([item.text(0), item.text(1)])
+
+		return contrasts
+
+	def set_selection(self, items):
+		self.treatment_select.addItems(items)
+		self.control_select.addItems(items)

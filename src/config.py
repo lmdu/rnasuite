@@ -48,7 +48,8 @@ class RNASuitePackages(ClassDict):
 	]
 	Plot = [
 		RNASuitePackage('ggplot2', "Create Elegant Data Visualisations Using the Grammar of Graphics", 'CRAN', '3.4.4'),
-		RNASuitePackage('ggpubr', "ggplot2 Based Publication Ready Plots", 'CRAN', '0.6.0')
+		RNASuitePackage('ggpubr', "ggplot2 Based Publication Ready Plots", 'CRAN', '0.6.0'),
+		RNASuitePackage('ggrepel', "ggrepel provides geoms for ggplot2 to repel overlapping text labels", 'CRAN', '0.9.4')
 	]
 	Annotation = [
 		RNASuitePackage('org.Hs.eg.db', "Genome wide annotation for Human", 'Bioconductor', '3.18.0'),

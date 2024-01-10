@@ -13,7 +13,8 @@ from threads import *
 
 __all__ = ['RNASuitePackageManagerDialog', 'RNASuiteDeseqParameterDialog',
 	'RNASuiteShowDEGParameterDialog', 'RNASuiteGlobalSettingDialog',
-	'RNASuiteEdgerParameterDialog', 'RNASuiteDEGDistPlotParameterDialog'
+	'RNASuiteEdgerParameterDialog', 'RNASuiteDEGDistPlotParameterDialog',
+	'RNASuiteDEGVolcanoPlotParameterDialog'
 ]
 
 class RNASuiteGlobalSettingDialog(QDialog):
@@ -183,7 +184,7 @@ class RNASuiteParameterDialog(QDialog):
 		self.register_events()
 
 	def sizeHint(self):
-		return QSize(400, 0)
+		return QSize(400, 100)
 
 	def register_widgets(self):
 		for i, p in enumerate(self.parameters):
@@ -245,6 +246,12 @@ class RNASuiteParameterDialog(QDialog):
 				if val:
 					self.widgets[p.key].set_color(val)
 
+			elif p.type == 'contrast':
+				self.widgets[p.key] = RNASuiteContrastVersusWidget(self)
+
+				if val:
+					self.widgets[p.key].set_contrasts(val)
+
 			#label = QLabel(p.display, self)
 			self.widget_layout.addRow(p.display, self.widgets[p.key])
 
@@ -285,6 +292,9 @@ class RNASuiteParameterDialog(QDialog):
 
 			elif isinstance(w, RNASuiteColorButton):
 				params[k] = w.get_color()
+
+			elif isinstance(w, RNASuiteContrastVersusWidget):
+				params[k] = w.get_contrasts()
 
 		return params
 
@@ -405,9 +415,15 @@ class RNASuiteDEGDistPlotParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDEGDistPlotParameters
 	title = 'DEG Distribution Plot'
 
-	def get_param_values(self):
-		params = super().get_param_values()
-		compares = params['compares'].strip().split(',')
-		params['contrasts'] = [comp.strip().split(' vs ') for comp in compares]
-		return params
+	#def get_param_values(self):
+	#	params = super().get_param_values()
+	#	compares = params['compares'].strip().split(',')
+	#	params['contrasts'] = [comp.strip().split(' vs ') for comp in compares]
+	#	return params
 
+	def register_events(self):
+		self.widgets.contrasts.set_selection(self.dataset)
+
+class RNASuiteDEGVolcanoPlotParameterDialog(RNASuiteParameterDialog):
+	parameters = RNASuiteDEGVolcanoPlotParameters
+	title = "DEG Volcano Plot"

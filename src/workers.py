@@ -7,7 +7,8 @@ from rchitect import *
 from PySide6.QtCore import *
 
 __all__ = ['RNASuiteEdgerDEGWorker', 'RNASuiteDeseqDEGWorker',
-	'RNASuiteShowDEGWorker', 'RNASuiteDEGDistPlotWorker'
+	'RNASuiteShowDEGWorker', 'RNASuiteDEGDistPlotWorker',
+	'RNASuiteDEGVolcanoPlotWorker'
 ]
 
 class RNASuiteBaseDEGWorker(QObject):
@@ -152,7 +153,7 @@ class RNASuiteShowDEGWorker(RNASuiteBaseDEGWorker):
 			}
 
 	def run(self):
-		func = '{}_show_degs'.format(self.tool)
+		func = '{}_show_degs'.format(self.params['tool'])
 		self.submit({
 			'action': 'call',
 			'rtype': 'degs',
@@ -178,4 +179,27 @@ class RNASuiteDEGDistPlotWorker(RNASuiteBaseDEGWorker):
 			'action': 'call',
 			'rtype': 'plot',
 			'func': 'degs_dist_plot'
+		})
+
+class RNASuiteDEGVolcanoPlotWorker(RNASuiteBaseDEGWorker):
+	script = 'R/volcanoplot.R'
+
+	@property
+	def data(self):
+		return {
+			'volcanoplot_tool': self.params['tool'],
+			'volcanoplot_top': self.params['top'],
+			'volcanoplot_line': self.params['line'],
+			'volcanoplot_gname': self.params['gname'],
+			'volcanoplot_gnsep': self.params['gnsep'],
+			'volcanoplot_gncol': self.params['gncol'],
+			'volcanoplot_limit': self.params['limit'],
+			'volcanoplot_colors': [self.params['ncolor'], self.params['ucolor'], self.params['dcolor']]
+		}
+
+	def run(self):
+		self.submit({
+			'action': 'call',
+			'rtype': 'plot',
+			'func': 'degs_volcano_plot'
 		})

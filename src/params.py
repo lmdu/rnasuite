@@ -1,7 +1,8 @@
 from utils import *
 
 __all__ = ['RNASuiteDEGParameters', 'RNASuiteShowDEGParameters',
-	'RNASuiteEdgerParameters', 'RNASuiteDEGDistPlotParameters'
+	'RNASuiteEdgerParameters', 'RNASuiteDEGDistPlotParameters',
+	'RNASuiteDEGVolcanoPlotParameters'
 ]
 
 class RNASuiteParameters:
@@ -207,14 +208,10 @@ RNASuiteShowDEGParameters = RNASuiteParameters(
 
 RNASuiteDEGDistPlotParameters = RNASuiteParameters(
 	AttrDict(
-		key = 'compares',
-		type = 'text',
+		key = 'contrasts',
+		type = 'contrast',
 		default = None,
-		display = 'Contrasts:',
-		help = (
-			"Multiple contrasts should be separated by commas,<br>"
-			"example: treatment1 vs control, treatment2 vs control"
-		)
+		display = 'Contrasts:'
 	),
 	AttrDict(
 		key = 'plot',
@@ -252,5 +249,70 @@ RNASuiteDEGDistPlotParameters = RNASuiteParameters(
 		type = 'color',
 		display = "Down-regulated color:",
 		default = '#377eb8'
+	)
+)
+
+RNASuiteDEGVolcanoPlotParameters = RNASuiteParameters(
+	AttrDict(
+		key = 'ncolor',
+		type = 'color',
+		display = "Not-significant color:",
+		default = '#eaeded'
+	),
+	AttrDict(
+		key = 'ucolor',
+		type = 'color',
+		display = "Up-regulated color:",
+		default = '#e41a1c'
+	),
+	AttrDict(
+		key = 'dcolor',
+		type = 'color',
+		display = "Down-regulated color:",
+		default = '#377eb8'
+	),
+	AttrDict(
+		key = 'line',
+		type = bool,
+		display = "Add threshold dashed lines:",
+		default = True
+	),
+	AttrDict(
+		key = 'top',
+		type = int,
+		range = (0, 1000),
+		step = 1,
+		display = "Show top significant gene names:",
+		default = 10
+	),
+	AttrDict(
+		key = 'gname',
+		type = list,
+		options = ('gene ID column', 'gene annotation'),
+		display = 'Show gene names from:',
+		default = None,
+		index = True
+	),
+	AttrDict(
+		key = 'gnsep',
+		type = str,
+		display = "Gene ID separator:",
+		default = '|'
+	),
+	AttrDict(
+		key = 'gncol',
+		type = int,
+		range = (1, 100),
+		step = 1,
+		default = 1,
+		display = "Show gene names in column:"
+	),
+	AttrDict(
+		key = 'limit',
+		type = int,
+		range = (0, 100),
+		step = 1,
+		default = 0,
+		display = "Log2 Fold Change limit:"
 	)
 )
