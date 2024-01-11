@@ -560,7 +560,15 @@ class RNASuiteMainWindow(QMainWindow):
 
 	@Slot()
 	def do_plot_degs_venn(self):
-		pass
+		degs_params = self.stored_params.get('degs', {})
+		samples = self.table_widgets.get_data('sample_info')
+		dataset = list(samples[degs_params['compare']].unique())
+		defines = self.stored_params.get('vennplot', {})
+		params = RNASuiteDEGVennPlotParameterDialog.get_params(self, defines, dataset)
+		params['tool'] = degs_params['tool']
+		#worker = RNASuiteDEGVennPlotWorker(self, params)
+		#self.run_analysis_worker(worker)
+		self.stored_params['vennplot'] = params
 
 	@Slot()
 	def do_plot_degs_upset(self):

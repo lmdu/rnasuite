@@ -16,7 +16,7 @@ __all__ = ['RNASuitePackageInstallButton', 'RNASuiteWaitingSpinner',
 	'RNASuitePackageTreeView', 'RNASuitePackageInstallMessage',
 	'RNASuiteSpacerWidget', 'RNASuiteMultipleSelect',
 	'RNASuiteRGeneralSettingPage', 'RNASuiteColorButton',
-	'RNASuiteContrastVersusWidget'
+	'RNASuiteContrastVersusWidget', 'RNASuiteColorGroups'
 ]
 
 class RNASuiteSpacerWidget(QWidget):
@@ -634,6 +634,8 @@ class RNASuiteRGeneralSettingPage(RNASuiteGlobalSettingPage):
 		thread.start()
 
 class RNASuiteContrastVersusWidget(QWidget):
+	contrast_changed = Signal(int)
+
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setMinimumSize(QSize(100, 150))
@@ -679,7 +681,7 @@ class RNASuiteContrastVersusWidget(QWidget):
 		del_act.triggered.connect(self.on_delete_contrast)
 		
 		clr_act = QAction("Clear")
-		clr_act.setDisabled(not item)
+		#clr_act.setDisabled(not item)
 		clr_act.triggered.connect(self.on_clear_contrasts)
 		
 		menu = QMenu(self.contrast_tree)
@@ -696,10 +698,12 @@ class RNASuiteContrastVersusWidget(QWidget):
 
 		index = self.contrast_tree.indexOfTopLevelItem(item)
 		self.contrast_tree.takeTopLevelItem(index)
+		self.contrast_changed.emit(self.contrast_tree.topLevelItemCount())
 
 	@Slot()
 	def on_clear_contrasts(self):
 		self.contrast_tree.clear()
+		self.contrast_changed.emit(0)
 
 	@Slot()
 	def on_add_clicked(self):
@@ -714,6 +718,7 @@ class RNASuiteContrastVersusWidget(QWidget):
 		item.setText(0, treatment)
 		item.setText(1, control)
 		self.contrast_tree.addTopLevelItem(item)
+		self.contrast_changed.emit(self.contrast_tree.topLevelItemCount())
 
 	def set_contrasts(self, contrasts):
 		for treatment, control in contrasts:
@@ -730,3 +735,56 @@ class RNASuiteContrastVersusWidget(QWidget):
 	def set_selection(self, items):
 		self.treatment_select.addItems(items)
 		self.control_select.addItems(items)
+
+class RNASuiteColorGroups(QWidget):
+	def __init__(self, parent=None, count=0):
+		super().__init__(parent)
+		self.color_counts = count
+		self.color_widgets = []
+		self.layout = QHBoxLayout()
+		self.layout.setContentsMargins(0, 0, 0, 0)
+		self.layout.addStretch()
+		self.setLayout(self.layout)
+
+		self.create_color_buttons()
+
+	def add_color_button(self):
+		widget = RNASuiteColorButton(self)
+		self.color_widgets.append(widget)
+		self.layout.addWidget(widget, 0, Qt.AlignLeft)
+		return widget
+
+	def remove_color_button(self):
+		widget = self.color_widgets.pop()
+		self.layout.removeWidget(widget)
+		widget.deleteLater()
+
+	def create_color_buttons(self):
+		for i in range(self.color_counts):
+			self.add_color_button()
+
+	def change_color_buttons(self, count):
+		if count > self.color_counts:
+			d = count - self.color_counts
+
+			for i in range(d):
+				self.add_color_button()
+
+		elif count < self.color_counts:
+			d = self.color_counts - count
+
+			for i in range(d):
+				self.remove_color_button()
+
+		self.color_counts = count
+
+	def set_colors(self, colors):
+		for color in colors:
+			widget = self.add_color_button()
+			widget.set_color(color)
+
+		self.color_counts = len(colors)
+
+	def get_colors(self):
+		return [w.get_color() for w in self.color_widgets]
+

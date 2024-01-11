@@ -2,7 +2,7 @@ from utils import *
 
 __all__ = ['RNASuiteDEGParameters', 'RNASuiteShowDEGParameters',
 	'RNASuiteEdgerParameters', 'RNASuiteDEGDistPlotParameters',
-	'RNASuiteDEGVolcanoPlotParameters'
+	'RNASuiteDEGVolcanoPlotParameters', 'RNASuiteDEGVennPlotParameters'
 ]
 
 class RNASuiteParameters:
@@ -20,7 +20,7 @@ class RNASuiteParameters:
 RNASuiteDEGParameters = RNASuiteParameters(
 	AttrDict(
 		key = 'fdr',
-		type = float,
+		type = 'float',
 		range = (0, 1),
 		step = 0.01,
 		display = 'FDR:',
@@ -28,7 +28,7 @@ RNASuiteDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'lgfc',
-		type = int,
+		type = 'int',
 		range = (0, 100),
 		step = 1,
 		display = 'log2FoldChange:',
@@ -36,7 +36,7 @@ RNASuiteDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'compare',
-		type = list,
+		type = 'list',
 		options = [],
 		display = 'Comparison between:',
 		default = None,
@@ -44,7 +44,7 @@ RNASuiteDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'control',
-		type = list,
+		type = 'list',
 		options = [],
 		display = 'Control group:',
 		default = None,
@@ -52,7 +52,7 @@ RNASuiteDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'treatment',
-		type = list,
+		type = 'list',
 		options = [],
 		display = 'Treatment group:',
 		default = None,
@@ -60,7 +60,7 @@ RNASuiteDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'eliminate',
-		type = set,
+		type = 'select',
 		options = [],
 		display = 'Eliminate effect of factors:',
 		default = None,
@@ -68,13 +68,13 @@ RNASuiteDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'design',
-		type = str,
+		type = 'str',
 		display = "Model design formula:",
 		default = None
 	),
 	AttrDict(
 		key = 'custom',
-		type = bool,
+		type = 'bool',
 		display = "Custom design formula:",
 		default = False
 	)
@@ -83,7 +83,7 @@ RNASuiteDEGParameters = RNASuiteParameters(
 RNASuiteEdgerParameters = RNASuiteParameters(
 	AttrDict(
 		key = 'fdr',
-		type = float,
+		type = 'float',
 		range = (0, 1),
 		step = 0.01,
 		display = 'FDR:',
@@ -91,7 +91,7 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'lgfc',
-		type = int,
+		type = 'int',
 		range = (0, 100),
 		step = 1,
 		display = 'log2FoldChange:',
@@ -99,7 +99,7 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'compare',
-		type = list,
+		type = 'list',
 		options = [],
 		display = 'Comparison between:',
 		default = None,
@@ -107,7 +107,7 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'control',
-		type = list,
+		type = 'list',
 		options = [],
 		display = 'Control group:',
 		default = None,
@@ -115,7 +115,7 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'treatment',
-		type = list,
+		type = 'list',
 		options = [],
 		display = 'Treatment group:',
 		default = None,
@@ -123,7 +123,7 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'eliminate',
-		type = set,
+		type = 'select',
 		options = [],
 		display = 'Considering effect of factors:',
 		default = None,
@@ -131,19 +131,19 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'design',
-		type = str,
+		type = 'str',
 		display = "Model design formula:",
 		default = None
 	),
 	AttrDict(
 		key = 'custom',
-		type = bool,
+		type = 'bool',
 		display = "Custom design formula:",
 		default = False
 	),
 	AttrDict(
 		key = 'replicate',
-		type = list,
+		type = 'list',
 		options = ['Biological Replicates', 'No Biological Replicates'],
 		display = "Use edgeR with:",
 		default = None,
@@ -151,7 +151,7 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'bcv',
-		type = float,
+		type = 'float',
 		range = (0, 1),
 		step = 0.01,
 		display = "BCV value:",
@@ -159,7 +159,7 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'method',
-		type = list,
+		type = 'list',
 		options = [
 			"Quasi-likelihood F-tests",
 			"Likelihood ratio tests",
@@ -174,7 +174,7 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 RNASuiteShowDEGParameters = RNASuiteParameters(
 	AttrDict(
 		key = 'fdr',
-		type = float,
+		type = 'float',
 		range = (0, 1),
 		step = 0.01,
 		display = 'FDR:',
@@ -182,7 +182,7 @@ RNASuiteShowDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'lgfc',
-		type = int,
+		type = 'int',
 		range = (0, 100),
 		step = 1,
 		display = 'log2FoldChange:',
@@ -190,7 +190,7 @@ RNASuiteShowDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'control',
-		type = list,
+		type = 'list',
 		options = [],
 		display = 'Control group:',
 		default = None,
@@ -198,7 +198,7 @@ RNASuiteShowDEGParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'treatment',
-		type = list,
+		type = 'list',
 		options = [],
 		display = 'Treatment group:',
 		default = None,
@@ -215,7 +215,7 @@ RNASuiteDEGDistPlotParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'plot',
-		type = list,
+		type = 'list',
 		options = [
 			'Stacked bar plot',
 			'Dodged bar plot'
@@ -226,13 +226,13 @@ RNASuiteDEGDistPlotParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'showval',
-		type = bool,
+		type = 'bool',
 		display = "Show value labels:",
 		default = False
 	),
 	AttrDict(
 		key = 'rotate',
-		type = int,
+		type = 'int',
 		range = [0, 90],
 		step = 5,
 		display = "X labels rotate angle:",
@@ -273,13 +273,13 @@ RNASuiteDEGVolcanoPlotParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'line',
-		type = bool,
+		type = 'bool',
 		display = "Add threshold dashed lines:",
 		default = True
 	),
 	AttrDict(
 		key = 'top',
-		type = int,
+		type = 'int',
 		range = (0, 1000),
 		step = 1,
 		display = "Show top significant gene names:",
@@ -287,7 +287,7 @@ RNASuiteDEGVolcanoPlotParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'gname',
-		type = list,
+		type = 'list',
 		options = ('gene ID column', 'gene annotation'),
 		display = 'Show gene names from:',
 		default = None,
@@ -295,13 +295,13 @@ RNASuiteDEGVolcanoPlotParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'gnsep',
-		type = str,
+		type = 'str',
 		display = "Gene ID separator:",
 		default = '|'
 	),
 	AttrDict(
 		key = 'gncol',
-		type = int,
+		type = 'int',
 		range = (1, 100),
 		step = 1,
 		default = 1,
@@ -309,10 +309,31 @@ RNASuiteDEGVolcanoPlotParameters = RNASuiteParameters(
 	),
 	AttrDict(
 		key = 'limit',
-		type = int,
+		type = 'int',
 		range = (0, 100),
 		step = 1,
 		default = 0,
 		display = "Log2 Fold Change limit:"
+	)
+)
+
+RNASuiteDEGVennPlotParameters = RNASuiteParameters(
+	AttrDict(
+		key = 'contrasts',
+		type = 'contrast',
+		default = None,
+		display = 'Contrasts:'
+	),
+	AttrDict(
+		key = 'colors',
+		type = 'colors',
+		default = None,
+		display = 'Colors:'
+	),
+	AttrDict(
+		key = 'percent',
+		type = 'bool',
+		display = "Show percent values:",
+		default = False
 	)
 )

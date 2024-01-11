@@ -14,7 +14,7 @@ from threads import *
 __all__ = ['RNASuitePackageManagerDialog', 'RNASuiteDeseqParameterDialog',
 	'RNASuiteShowDEGParameterDialog', 'RNASuiteGlobalSettingDialog',
 	'RNASuiteEdgerParameterDialog', 'RNASuiteDEGDistPlotParameterDialog',
-	'RNASuiteDEGVolcanoPlotParameterDialog'
+	'RNASuiteDEGVolcanoPlotParameterDialog', 'RNASuiteDEGVennPlotParameterDialog'
 ]
 
 class RNASuiteGlobalSettingDialog(QDialog):
@@ -190,67 +190,74 @@ class RNASuiteParameterDialog(QDialog):
 		for i, p in enumerate(self.parameters):
 			val = self.defines.get(p.key, None) or p.default
 
-			if p.type == int:
-				self.widgets[p.key] = QSpinBox(self)
-				self.widgets[p.key].setRange(*p.range)
-				self.widgets[p.key].setSingleStep(p.step)
-				self.widgets[p.key].setValue(val)
+			match p.type:
+				case 'int':
+					self.widgets[p.key] = QSpinBox(self)
+					self.widgets[p.key].setRange(*p.range)
+					self.widgets[p.key].setSingleStep(p.step)
+					self.widgets[p.key].setValue(val)
 
-			elif p.type == float:
-				self.widgets[p.key] = QDoubleSpinBox(self)
-				self.widgets[p.key].setRange(*p.range)
-				self.widgets[p.key].setSingleStep(p.step)
-				self.widgets[p.key].setDecimals(5)
-				self.widgets[p.key].setValue(val)
+				case 'float':
+					self.widgets[p.key] = QDoubleSpinBox(self)
+					self.widgets[p.key].setRange(*p.range)
+					self.widgets[p.key].setSingleStep(p.step)
+					self.widgets[p.key].setDecimals(5)
+					self.widgets[p.key].setValue(val)
 
-			elif p.type == str:
-				self.widgets[p.key] = QLineEdit(self)
+				case 'str':
+					self.widgets[p.key] = QLineEdit(self)
 
-				if val:
-					self.widgets[p.key].setText(val)
+					if val:
+						self.widgets[p.key].setText(val)
 
-			elif p.type == list:
-				self.widgets[p.key] = QComboBox(self)
-				self.widgets[p.key].addItems(p.options)
+				case 'list':
+					self.widgets[p.key] = QComboBox(self)
+					self.widgets[p.key].addItems(p.options)
 
-				if isinstance(val, int):
-					self.widgets[p.key].setCurrentIndex(val)
+					if isinstance(val, int):
+						self.widgets[p.key].setCurrentIndex(val)
 
-				elif val:
-					self.widgets[p.key].setCurrentText(val)
+					elif val:
+						self.widgets[p.key].setCurrentText(val)
 
-			elif p.type == bool:
-				self.widgets[p.key] = QCheckBox(self)
+				case 'bool':
+					self.widgets[p.key] = QCheckBox(self)
 
-				if val:
-					self.widgets[p.key].setCheckState(Qt.Checked)
-				else:
-					self.widgets[p.key].setCheckState(Qt.Unchecked)
+					if val:
+						self.widgets[p.key].setCheckState(Qt.Checked)
+					else:
+						self.widgets[p.key].setCheckState(Qt.Unchecked)
 
-			elif p.type == set:
-				self.widgets[p.key] = RNASuiteMultipleSelect(self)
-				self.widgets[p.key].add_items(p.options)
+				case 'select':
+					self.widgets[p.key] = RNASuiteMultipleSelect(self)
+					self.widgets[p.key].add_items(p.options)
 
-				if val:
-					self.widgets[p.key].set_text(val)
+					if val:
+						self.widgets[p.key].set_text(val)
 
-			elif p.type == 'text':
-				self.widgets[p.key] = QPlainTextEdit(self)
+				case 'text':
+					self.widgets[p.key] = QPlainTextEdit(self)
 
-				if val:
-					self.widgets[p.key].appendPlainText(val)
+					if val:
+						self.widgets[p.key].appendPlainText(val)
 
-			elif p.type == 'color':
-				self.widgets[p.key] = RNASuiteColorButton(self)
+				case 'color':
+					self.widgets[p.key] = RNASuiteColorButton(self)
 
-				if val:
-					self.widgets[p.key].set_color(val)
+					if val:
+						self.widgets[p.key].set_color(val)
 
-			elif p.type == 'contrast':
-				self.widgets[p.key] = RNASuiteContrastVersusWidget(self)
+				case 'colors':
+					self.widgets[p.key] = RNASuiteColorGroups(self)
 
-				if val:
-					self.widgets[p.key].set_contrasts(val)
+					if val:
+						self.widgets[p.key].set_colors(val)
+
+				case 'contrast':
+					self.widgets[p.key] = RNASuiteContrastVersusWidget(self)
+
+					if val:
+						self.widgets[p.key].set_contrasts(val)
 
 			#label = QLabel(p.display, self)
 			self.widget_layout.addRow(p.display, self.widgets[p.key])
@@ -267,34 +274,35 @@ class RNASuiteParameterDialog(QDialog):
 		params = {}
 
 		for k, w in self.widgets.items():
-			if isinstance(w, QAbstractSpinBox):
-				params[k] = w.value()
+			match w:
+				case QAbstractSpinBox():
+					params[k] = w.value()
 
-			elif isinstance(w, QLineEdit):
-				params[k] = w.text().strip()
+				case QLineEdit():
+					params[k] = w.text().strip()
 
-			elif isinstance(w, QComboBox):
-				p = self.parameters[k]
+				case QComboBox():
+					p = self.parameters[k]
 
-				if p.index:
-					params[k] = w.currentIndex()
-				else:
-					params[k] = w.currentText()
+					if p.index:
+						params[k] = w.currentIndex()
+					else:
+						params[k] = w.currentText()
 
-			elif isinstance(w, QCheckBox):
-				params[k] = w.checkState() == Qt.Checked
+				case QCheckBox():
+					params[k] = w.checkState() == Qt.Checked
 
-			elif isinstance(w, QPlainTextEdit):
-				params[k] = w.toPlainText()
+				case QPlainTextEdit():
+					params[k] = w.toPlainText()
 
-			elif isinstance(w, RNASuiteMultipleSelect):
-				params[k] = w.get_text()
+				case RNASuiteMultipleSelect():
+					params[k] = w.get_text()
 
-			elif isinstance(w, RNASuiteColorButton):
-				params[k] = w.get_color()
+				case RNASuiteColorButton():
+					params[k] = w.get_color()
 
-			elif isinstance(w, RNASuiteContrastVersusWidget):
-				params[k] = w.get_contrasts()
+				case RNASuiteContrastVersusWidget():
+					params[k] = w.get_contrasts()
 
 		return params
 
@@ -424,6 +432,16 @@ class RNASuiteDEGDistPlotParameterDialog(RNASuiteParameterDialog):
 	def register_events(self):
 		self.widgets.contrasts.set_selection(self.dataset)
 
+class RNASuiteDEGVennPlotParameterDialog(RNASuiteParameterDialog):
+	parameters = RNASuiteDEGVennPlotParameters
+	title = "DEG Venn Plot"
+
+	def register_events(self):
+		self.widgets.contrasts.set_selection(self.dataset)
+		self.widgets.contrasts.contrast_changed.connect(self.widgets.colors.change_color_buttons)
+
 class RNASuiteDEGVolcanoPlotParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDEGVolcanoPlotParameters
 	title = "DEG Volcano Plot"
+
+
