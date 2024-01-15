@@ -8,14 +8,99 @@ from PySide6.QtWidgets import *
 
 from utils import *
 from params import *
+from tables import *
 from widgets import *
 from threads import *
 
 __all__ = ['RNASuitePackageManagerDialog', 'RNASuiteDeseqParameterDialog',
 	'RNASuiteShowDEGParameterDialog', 'RNASuiteGlobalSettingDialog',
 	'RNASuiteEdgerParameterDialog', 'RNASuiteDEGDistPlotParameterDialog',
-	'RNASuiteDEGVolcanoPlotParameterDialog', 'RNASuiteDEGVennPlotParameterDialog'
+	'RNASuiteDEGVolcanoPlotParameterDialog', 'RNASuiteDEGVennPlotParameterDialog',
+	'RNASuiteDEGUpsetPlotParameterDialog', 'RNASuiteColumnSeparatorDialog',
+	'RNASuiteShowPandasDataDialog'
 ]
+
+class RNASuiteShowPandasDataDialog(QDialog):
+	def __init__(self, parent=None, dataset=None):
+		super().__init__(parent)
+		self.dataset = dataset
+
+		self.setWindowTitle("View Data")
+		self.setWindowFlags(self.windowFlags() | Qt.WindowMaximizeButtonHint)
+		
+		self.create_widgets()
+		self.set_layouts()
+
+	def sizeHint(self):
+		return QSize(800, 600)
+
+	def create_widgets(self):
+		self.data_table = RNASuitePandasTable()
+		self.data_table.update_data(self.dataset)
+		self.tool_bar = QToolBar(self)
+		
+		self.row_label = QLabel("Rows: {}".format(len(self.dataset)), self)
+		self.col_label = QLabel("Columns: {}".format(len(self.dataset.columns)), self)
+		
+		self.status_bar = QStatusBar(self)
+		self.status_bar.addPermanentWidget(self.row_label)
+		self.status_bar.addPermanentWidget(self.col_label)
+		self.status_bar.addPermanentWidget(RNASuiteSpacerWidget(self), 1)
+
+	def set_layouts(self):
+		main_layout = QVBoxLayout()
+		main_layout.setContentsMargins(0, 0, 0, 0)
+		main_layout.addWidget(self.tool_bar)
+		main_layout.addWidget(self.data_table)
+		main_layout.addWidget(self.status_bar)
+		self.setLayout(main_layout)
+
+
+class RNASuiteColumnSeparatorDialog(QDialog):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.setWindowTitle("Specify Column Separator")
+		self.create_widgets()
+		self.set_layouts()
+
+	def sizeHint(self):
+		return QSize(300, 10)
+
+	def create_widgets(self):
+		self.separator_list = QComboBox(self)
+		self.separator_list.addItems(['Tab', 'Comma', 'White Space'])
+		self.list_label = QLabel("Select a separator:")
+		self.separator_edit = QLineEdit(self)
+		self.separator_edit.setDisabled(True)
+		self.edit_check = QCheckBox("Or input a separator:", self)
+		self.edit_check.stateChanged.connect(self._on_custom_separator)
+		self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		self.button_box.accepted.connect(self.accept)
+		self.button_box.rejected.connect(self.reject)
+
+	def set_layouts(self):
+		main_layout = QVBoxLayout()
+		main_layout.addWidget(self.list_label)
+		main_layout.addWidget(self.separator_list)
+		main_layout.addWidget(self.edit_check)
+		main_layout.addWidget(self.separator_edit)
+		main_layout.addWidget(self.button_box)
+		self.setLayout(main_layout)
+
+	@Slot()
+	def _on_custom_separator(self, state):
+		self.separator_list.setDisabled(state)
+		self.separator_edit.setEnabled(state)
+
+	@classmethod
+	def get_delimiter(cls, parent):
+		dlg = cls(parent)
+
+		if dlg.exec() == QDialog.Accepted:
+			if dlg.edit_check.isChecked():
+				return dlg.separator_edit.text()
+			else:
+				return ['\t', ',', ' '][dlg.separator_list.currentIndex()]
 
 class RNASuiteGlobalSettingDialog(QDialog):
 	def __init__(self, parent=None):
@@ -158,6 +243,7 @@ class RNASuitePackageManagerDialog(QDialog):
 class RNASuiteParameterDialog(QDialog):
 	parameters = {}
 	title = None
+	pname = None
 
 	def __init__(self, parent=None, defines={}, dataset=None):
 		super().__init__(parent)
@@ -189,77 +275,7 @@ class RNASuiteParameterDialog(QDialog):
 	def register_widgets(self):
 		for i, p in enumerate(self.parameters):
 			val = self.defines.get(p.key, None) or p.default
-
-			match p.type:
-				case 'int':
-					self.widgets[p.key] = QSpinBox(self)
-					self.widgets[p.key].setRange(*p.range)
-					self.widgets[p.key].setSingleStep(p.step)
-					self.widgets[p.key].setValue(val)
-
-				case 'float':
-					self.widgets[p.key] = QDoubleSpinBox(self)
-					self.widgets[p.key].setRange(*p.range)
-					self.widgets[p.key].setSingleStep(p.step)
-					self.widgets[p.key].setDecimals(5)
-					self.widgets[p.key].setValue(val)
-
-				case 'str':
-					self.widgets[p.key] = QLineEdit(self)
-
-					if val:
-						self.widgets[p.key].setText(val)
-
-				case 'list':
-					self.widgets[p.key] = QComboBox(self)
-					self.widgets[p.key].addItems(p.options)
-
-					if isinstance(val, int):
-						self.widgets[p.key].setCurrentIndex(val)
-
-					elif val:
-						self.widgets[p.key].setCurrentText(val)
-
-				case 'bool':
-					self.widgets[p.key] = QCheckBox(self)
-
-					if val:
-						self.widgets[p.key].setCheckState(Qt.Checked)
-					else:
-						self.widgets[p.key].setCheckState(Qt.Unchecked)
-
-				case 'select':
-					self.widgets[p.key] = RNASuiteMultipleSelect(self)
-					self.widgets[p.key].add_items(p.options)
-
-					if val:
-						self.widgets[p.key].set_text(val)
-
-				case 'text':
-					self.widgets[p.key] = QPlainTextEdit(self)
-
-					if val:
-						self.widgets[p.key].appendPlainText(val)
-
-				case 'color':
-					self.widgets[p.key] = RNASuiteColorButton(self)
-
-					if val:
-						self.widgets[p.key].set_color(val)
-
-				case 'colors':
-					self.widgets[p.key] = RNASuiteColorGroups(self)
-
-					if val:
-						self.widgets[p.key].set_colors(val)
-
-				case 'contrast':
-					self.widgets[p.key] = RNASuiteContrastVersusWidget(self)
-
-					if val:
-						self.widgets[p.key].set_contrasts(val)
-
-			#label = QLabel(p.display, self)
+			self.widgets[p.key] = create_parameter_widget(p, val)
 			self.widget_layout.addRow(p.display, self.widgets[p.key])
 
 			if 'help' in p:
@@ -271,51 +287,46 @@ class RNASuiteParameterDialog(QDialog):
 		pass
 
 	def get_param_values(self):
-		params = {}
-
-		for k, w in self.widgets.items():
-			match w:
-				case QAbstractSpinBox():
-					params[k] = w.value()
-
-				case QLineEdit():
-					params[k] = w.text().strip()
-
-				case QComboBox():
-					p = self.parameters[k]
-
-					if p.index:
-						params[k] = w.currentIndex()
-					else:
-						params[k] = w.currentText()
-
-				case QCheckBox():
-					params[k] = w.checkState() == Qt.Checked
-
-				case QPlainTextEdit():
-					params[k] = w.toPlainText()
-
-				case RNASuiteMultipleSelect():
-					params[k] = w.get_text()
-
-				case RNASuiteColorButton():
-					params[k] = w.get_color()
-
-				case RNASuiteContrastVersusWidget():
-					params[k] = w.get_contrasts()
-
-		return params
+		values = get_widgets_parameters(self.widgets, self.parameters)
+		return values
 
 	@classmethod
-	def get_params(cls, parent=None, defines={}, dataset=None):
+	def get_preset_datas(self, parent):
+		pass
+
+	@classmethod
+	def get_params(cls, parent=None):
+		defines, dataset = cls.get_preset_datas(parent)
 		dlg = cls(parent, defines, dataset)
 
 		if dlg.exec() == QDialog.Accepted:
-			return dlg.get_param_values()
+			params = dlg.get_param_values()
+			parent.global_params[self.pname] = params
+			return params
 
 class RNASuiteDeseqParameterDialog(RNASuiteParameterDialog):
-	parameters = RNASuiteDEGParameters
+	parameters = RNASuiteDeseqParameters
 	title = "Identify DEGs by DESeq2"
+	pname = 'degs'
+
+	@classmethod
+	def get_preset_datas(self, parent):
+		parent.global_params['tool'] = 'deseq'
+		defines = parent.global_params.get(self.pname, {})
+		dataset = parent.input_list.get_groups()
+		return defines, dataset
+
+	@classmethod
+	def get_params(cls, parent=None):
+		defines, dataset = cls.get_preset_datas(parent)
+		dlg = cls(parent, defines, dataset)
+
+		if dlg.exec() == QDialog.Accepted:
+			params = dlg.get_param_values()
+			params['counts'] = parent.input_list.read_counts
+			params['samples'] = parent.input_list.sample_info
+			parent.global_params[dlg.pname] = params
+			return params
 
 	@Slot()
 	def custom_design_toggle(self, state):
@@ -327,6 +338,7 @@ class RNASuiteDeseqParameterDialog(RNASuiteParameterDialog):
 	@Slot()
 	def comparison_between_changed(self, group):
 		groups = list(map(str, self.dataset[group]))
+
 		self.widgets.control.clear()
 		self.widgets.control.addItems(groups)
 		self.widgets.treatment.clear()
@@ -335,7 +347,6 @@ class RNASuiteDeseqParameterDialog(RNASuiteParameterDialog):
 		factors = list(self.dataset.keys())
 		factors.remove(group)
 		self.widgets.eliminate.add_items(factors)
-
 		self.widgets.design.setText("~ {}".format(group))
 
 	@Slot()
@@ -440,8 +451,14 @@ class RNASuiteDEGVennPlotParameterDialog(RNASuiteParameterDialog):
 		self.widgets.contrasts.set_selection(self.dataset)
 		self.widgets.contrasts.contrast_changed.connect(self.widgets.colors.change_color_buttons)
 
+class RNASuiteDEGUpsetPlotParameterDialog(RNASuiteParameterDialog):
+	parameters = RNASuiteDEGUpsetPlotParameters
+	title = "DEG Upset Plot"
+
+	def register_events(self):
+		self.widgets.contrasts.set_selection(self.dataset)
+
 class RNASuiteDEGVolcanoPlotParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDEGVolcanoPlotParameters
 	title = "DEG Volcano Plot"
-
 

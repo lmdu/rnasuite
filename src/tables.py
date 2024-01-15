@@ -51,6 +51,9 @@ class RNASuitePandasTable(QTableView):
 		#self.data_frame = self.data_frame.round(3)
 		self.data_model.load_data(self.data_frame)
 
+	def update_data(self, data):
+		self.data_model.load_data(data)
+
 	def get_data(self):
 		return self.data_frame
 

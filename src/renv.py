@@ -9,6 +9,7 @@ from rchitect.interface import set_hook, package_event
 
 from PySide6.QtCore import *
 
+from utils import *
 from config import *
 
 __all__ = ['RNASuiteREnvironment', 'RNASuiteRMessageProcessor']
@@ -111,9 +112,18 @@ class RNASuiteREnvironment(multiprocessing.Process):
 			except EOFError:
 				break
 
-			match data['action']:
-				case 'data':
-					try:
+			try:
+				self.send('running', data=True)
+
+				if 'params' in data:
+					for k, v in data['params'].items():
+						data['params'][k] = convert_dict_to_dataframe(v)
+
+				else:
+					data['params'] = {}
+
+				match data['action']:
+					case 'data':
 						if data['dataframe']:
 							data['value'] = pandas.DataFrame.from_dict(data['value'], orient='tight')
 							rchitect.rcall('send_df_to_r', data['variable'], data['value'])
@@ -121,49 +131,31 @@ class RNASuiteREnvironment(multiprocessing.Process):
 						else:
 							rchitect.rcall('send_val_to_r', data['variable'], data['value'])
 
-					except:
-						self.send('error', traceback.format_exc())
-
-				case 'call':
-					try:
-						self.send('running', data=True)
-						ret = rchitect.rcopy(rchitect.rcall(data['func']))
+					case 'call':
+						ret = rchitect.rcopy(rchitect.rcall(data['func'], **data['params']))
 
 						if isinstance(ret, pandas.DataFrame):
-							ret = ret.to_dict(orient='tight')
+							ret = convert_dataframe_to_dict(ret)
 
 						elif isinstance(ret, dict):
 							for k, v in ret.items():
 								if isinstance(v, pandas.DataFrame):
-									ret[k] = v.to_dict(orient='tight')
+									ret[k] = convert_dataframe_to_dict(orient='tight')
 
 						self.send('result', data['rtype'], ret)
 
-					except:
-						self.send('error', traceback.format_exc())
+					case 'eval':
+						rchitect.reval(data['code'])
 
-					finally:
-						self.send('running', data=False)
-
-				case 'eval':
-					try:
-						self.send('running', data=True)
-						ret = rchitect.rcopy(rchitect.reval(data['code']))
-						#self.send('result', ret)
-
-					except:
-						self.send('error', traceback.format_exc())
-
-					finally:
-						self.send('running', data=False)
-
-				case 'plot':
-					try:
+					case 'plot':
 						ret = rchitect.rcopy(rchitect.rcall('hgd_plot', **data['params']))
 						self.send('plot', ret)
 
-					except:
-						self.send('error', traceback.format_exc())
+			except:
+				self.send('error', traceback.format_exc())
+
+			finally:
+				self.send('running', data=False)
 
 class RNASuiteRMessageProcessor(QThread):
 	socket = Signal()
@@ -180,8 +172,8 @@ class RNASuiteRMessageProcessor(QThread):
 
 	def data_transfrom(self, data):
 		if isinstance(data, dict):
-			if 'index_names' in data and 'column_names' in data:
-				return pandas.DataFrame.from_dict(data, orient='tight')
+			#if 'index_names' in data and 'column_names' in data:
+			return pandas.DataFrame.from_dict(data, orient='tight')
 
 		return data
 
@@ -196,7 +188,7 @@ class RNASuiteRMessageProcessor(QThread):
 			match data['action']:
 				case 'warning':
 					self.warning.emit(data['content'])
-				
+
 				case 'error':
 					self.error.emit(data['content'])
 				
@@ -205,7 +197,7 @@ class RNASuiteRMessageProcessor(QThread):
 
 				case 'running':
 					self.running.emit(data['data'])
-				
+
 				case 'plot':
 					self.plot.emit(data['content'])
 

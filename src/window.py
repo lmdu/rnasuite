@@ -27,11 +27,11 @@ class RNASuiteMainWindow(QMainWindow):
 		self.setWindowTitle("RNASuite v{}".format(RNASUITE_VERSION))
 		self.pyconn, self.rconn = multiprocessing.Pipe()
 
-		self.stored_params = {}
+		self.global_params = {}
 
 		self.create_input_dock()
-		self.create_output_dock()
 		self.create_plot_dock()
+		self.create_output_dock()
 
 		self.create_actions()
 		self.create_menus()
@@ -67,7 +67,7 @@ class RNASuiteMainWindow(QMainWindow):
 		self.r_thread.message.connect(self.show_status_message)
 		self.r_thread.socket.connect(self.plot_viewer.connect_to_socket)
 		self.r_thread.plot.connect(self.plot_viewer.update_image)
-		self.r_thread.results.connect(self.process_r_results)
+		self.r_thread.results.connect(self.output_list.receive)
 		self.r_thread.running.connect(self.wait_spinner.toggle)
 		self.r_thread.running.connect(self.run_progress.setVisible)
 		self.r_thread.start()
@@ -81,9 +81,9 @@ class RNASuiteMainWindow(QMainWindow):
 
 	def create_table_manager(self):
 		self.table_widgets = RNASuiteTableWidgets(self)
-		self.table_widgets.intab.connect(self.input_tabs.addTab)
-		self.table_widgets.outab.connect(self.output_tabs.addTab)
-		self.table_widgets.title.connect(self.on_change_tab_title)
+		#self.table_widgets.intab.connect(self.input_tabs.addTab)
+		#self.table_widgets.outab.connect(self.output_tabs.addTab)
+		#self.table_widgets.title.connect(self.on_change_tab_title)
 
 	@Slot()
 	def on_change_tab_title(self, widget, title):
@@ -93,13 +93,26 @@ class RNASuiteMainWindow(QMainWindow):
 	@Slot()
 	def process_r_results(self, rtype, res):
 		if rtype == 'degs':
-			for k, v in res.items():
-				if k == 'degs_versus':
-					title = "DEGs ({} vs {})".format(v[-2], v[-1])
-					self.table_widgets.set_title('degs_list', title)
-				else:
-					table = self.table_widgets.get_table(k)
-					table.set_tight(v)
+			v = res['degs_versus']
+			contrast = "{} vs {}".format(v[-2], v[-1])
+
+			if 'normal_count' in res:
+				self.output_list.add_row(
+					type = 'Counts',
+					name = 'Noramlized Counts',
+					plot = 0,
+					update = 1,
+					data = res['normal_count']
+				)
+
+			elif 'degs_list' in res:
+				self.output_list.add_row(
+					type = 'DEGs',
+					name = contrast,
+					plot = 0,
+					update = 1,
+					data = res['degs_list']
+				)
 
 	@Slot()
 	def on_open_project(self):
@@ -154,11 +167,11 @@ class RNASuiteMainWindow(QMainWindow):
 		height = size.height()
 		width = size.width()
 
-		out_height = int(height * 0.4)
-		plot_height = height - out_height
-		docks = [self.output_dock, self.plot_dock]
-		sizes = [out_height, plot_height]
-		self.resizeDocks(docks, sizes, Qt.Vertical)
+		#out_height = int(height * 0.4)
+		#plot_height = height - out_height
+		#docks = [self.output_dock, self.plot_dock]
+		#sizes = [out_height, plot_height]
+		#self.resizeDocks(docks, sizes, Qt.Vertical)
 
 	def create_actions(self):
 		self.open_act = QAction("Open Project", self)
@@ -217,8 +230,8 @@ class RNASuiteMainWindow(QMainWindow):
 		self.input_dock_act.setText("Show Input Tables")
 		self.output_dock_act = self.output_dock.toggleViewAction()
 		self.output_dock_act.setText("Show Output Tables")
-		self.plot_dock_act = self.plot_dock.toggleViewAction()
-		self.plot_dock_act.setText("Show Output Plots")
+		#self.plot_dock_act = self.plot_dock.toggleViewAction()
+		#self.plot_dock_act.setText("Show Output Plots")
 
 		self.deseq_degs_act = QAction("Identify DEGs by DESeq2", self)
 		self.deseq_degs_act.triggered.connect(self.do_identify_degs_by_deseq2)
@@ -301,7 +314,7 @@ class RNASuiteMainWindow(QMainWindow):
 		self.view_menu = self.menuBar().addMenu("&View")
 		self.view_menu.addAction(self.input_dock_act)
 		self.view_menu.addAction(self.output_dock_act)
-		self.view_menu.addAction(self.plot_dock_act)
+		#self.view_menu.addAction(self.plot_dock_act)
 
 		self.anal_menu = self.menuBar().addMenu("&Analysis")
 		deg_menu = self.anal_menu.addMenu("DEGs Analysis")
@@ -363,21 +376,30 @@ class RNASuiteMainWindow(QMainWindow):
 		dlg = RNASuiteGlobalSettingDialog(self)
 		dlg.exec()
 
-	def import_data_file(self, title, table):
-		table_file, _ = QFileDialog.getOpenFileName(self,
+	def import_data_file(self, title, reader):
+		delimiter = None
+		file, _ = QFileDialog.getOpenFileName(self,
 			caption = title,
-			filter = "Table files (*.csv *.tsv *.xls *.xls *.txt);;All files (*.*)"
+			filter = "Table files (*.csv *.tsv *.xls *.xlsx *.txt);;All files (*.*)"
 		)
 
-		if not table_file:
+		if not file:
 			return
 
-		table_widget = self.table_widgets.get_table(table)
+		if not file.endswith(('.csv', '.tsv', '.xls', '.xlsx')):
+			delimiter = RNASuiteColumnSeparatorDialog.get_delimiter(self)
+			print(delimiter)
 
-		try:
-			table_widget.read_file(table_file)
-		except:
-			self.main_error.prompt('import_error', table_file)
+		match reader:
+			case 'read_count':
+				self.input_list.import_read_count(file, delimiter)
+
+			case 'sample_info':
+				self.input_list.import_sample_info(file, delimiter)
+
+
+
+
 
 	@Slot()
 	def on_import_read_counts(self):
@@ -474,23 +496,28 @@ class RNASuiteMainWindow(QMainWindow):
 		if self.has_running_worker():
 			return
 
-		if self.has_none_deg_data():
-			return
+		#if self.has_none_deg_data():
+		#	return
 
-		defines = self.stored_params.get('degs', {})
-		samples = self.table_widgets.get_data('sample_info')
-		dataset = {c: list(samples[c].unique()) for c in samples.columns}
-		params = RNASuiteDeseqParameterDialog.get_params(self, defines, dataset)
+		#defines = self.stored_params.get('degs', {})
+		#samples = self.table_widgets.get_data('sample_info')
+		#samples = self.input_list.sample_info
+		#dataset = {c: list(samples[c].unique()) for c in samples.columns}
+
+		params = RNASuiteDeseqParameterDialog.get_params(self)
 
 		if not params:
 			return
 
-		read_counts = self.table_widgets.get_tight('read_count')
-		sample_info = self.table_widgets.get_tight('sample_info')
-		worker = RNASuiteDeseqDEGWorker(self, read_counts, sample_info, params)
+		#read_counts = self.input_list.get_tight('read_counts')
+		#sample_info = self.input_list.get_tight('sample_info')
+		#params['counts'] = self.input_list.read_counts
+		#params['samples'] = self.input_list.sample_info
+
+		worker = RNASuiteDeseqIdentifyWorker(self, params)
 		self.run_analysis_worker(worker)
-		params['tool'] = 'deseq'
-		self.stored_params['degs'] = params
+		#params['tool'] = 'deseq'
+		#self.stored_params['degs'] = params
 
 	@Slot()
 	def do_identify_degs_by_edger(self):
@@ -566,13 +593,21 @@ class RNASuiteMainWindow(QMainWindow):
 		defines = self.stored_params.get('vennplot', {})
 		params = RNASuiteDEGVennPlotParameterDialog.get_params(self, defines, dataset)
 		params['tool'] = degs_params['tool']
-		#worker = RNASuiteDEGVennPlotWorker(self, params)
-		#self.run_analysis_worker(worker)
+		worker = RNASuiteDEGVennPlotWorker(self, params)
+		self.run_analysis_worker(worker)
 		self.stored_params['vennplot'] = params
 
 	@Slot()
 	def do_plot_degs_upset(self):
-		pass
+		degs_params = self.stored_params.get('degs', {})
+		samples = self.table_widgets.get_data('sample_info')
+		dataset = list(samples[degs_params['compare']].unique())
+		defines = self.stored_params.get('upsetplot', {})
+		params = RNASuiteDEGUpsetPlotParameterDialog.get_params(self, defines, dataset)
+		params['tool'] = degs_params['tool']
+		worker = RNASuiteDEGUpsetPlotWorker(self, params)
+		self.run_analysis_worker(worker)
+		self.stored_params['upsetplot'] = params
 
 	@Slot()
 	def do_plot_degs_volcano(self):
@@ -594,31 +629,43 @@ class RNASuiteMainWindow(QMainWindow):
 		QMessageBox.about(self, "About", about_str)
 
 	def create_input_dock(self):
-		self.input_tabs = QTabWidget(self)
+		#self.input_tabs = QTabWidget(self)
+		self.input_list = RNASuiteInputListWidget(self)
+		self.input_list.show_table.connect(self._on_show_table_data)
 		self.input_dock = QDockWidget("Input", self)
 		#self.input_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
 		self.input_dock.setAllowedAreas(Qt.LeftDockWidgetArea)
-		self.input_dock.setWidget(self.input_tabs)
+		self.input_dock.setWidget(self.input_list)
 		self.addDockWidget(Qt.LeftDockWidgetArea, self.input_dock)
 		#self.setCentralWidget(self.input_tabs)
 
 	def create_output_dock(self):
-		self.output_tabs = QTabWidget(self)
+		#self.output_tabs = QTabWidget(self)
+		self.output_list = RNASuiteOutputTreeWidget(self)
+		self.output_list.show_table.connect(self._on_show_table_data)
+		self.output_list.show_panel.connect(self.plot_stack.show_panel)
 		self.output_dock = QDockWidget("Output", self)
 		#self.output_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-		self.output_dock.setAllowedAreas(Qt.RightDockWidgetArea)
-		self.output_dock.setWidget(self.output_tabs)
-		self.addDockWidget(Qt.RightDockWidgetArea, self.output_dock)
+		self.output_dock.setAllowedAreas(Qt.LeftDockWidgetArea)
+		self.output_dock.setWidget(self.output_list)
+		self.addDockWidget(Qt.LeftDockWidgetArea, self.output_dock)
 
 	def create_plot_dock(self):
 		self.plot_viewer = RNASuitePlotViewer(self)
 		self.plot_viewer.error.connect(self.show_error_message)
 		#self.plot_viewer.connect()
+		self.plot_stack = RNASuitePlotStackedWidget(self)
 		self.plot_dock = QDockWidget("Plot", self)
 		#self.plot_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
 		self.plot_dock.setAllowedAreas(Qt.RightDockWidgetArea)
-		self.plot_dock.setWidget(self.plot_viewer)
+		self.plot_dock.setWidget(self.plot_stack)
 		self.addDockWidget(Qt.RightDockWidgetArea, self.plot_dock)
+		self.setCentralWidget(self.plot_viewer)
+
+	@Slot()
+	def _on_show_table_data(self, data):
+		dlg = RNASuiteShowPandasDataDialog(self, data)
+		dlg.exec()
 
 	@Slot(str)
 	def show_warn_message(self, warn):

@@ -49,7 +49,10 @@ class RNASuitePackages(ClassDict):
 	Plot = [
 		RNASuitePackage('ggplot2', "Create Elegant Data Visualisations Using the Grammar of Graphics", 'CRAN', '3.4.4'),
 		RNASuitePackage('ggpubr', "ggplot2 Based Publication Ready Plots", 'CRAN', '0.6.0'),
-		RNASuitePackage('ggrepel', "ggrepel provides geoms for ggplot2 to repel overlapping text labels", 'CRAN', '0.9.4')
+		RNASuitePackage('ggrepel', "ggrepel provides geoms for ggplot2 to repel overlapping text labels", 'CRAN', '0.9.4'),
+		RNASuitePackage('ggvenn', "An easy-to-use way to draw pretty venn diagram by ggplot2", 'CRAN', '0.1.10'),
+		RNASuitePackage('ComplexHeatmap', "Arrange multiple heatmaps and various annotation graphics", 'Bioconductor', '2.18.0'),
+		RNASuitePackage('UpSetR', "Alternative to Venn and Euler Diagrams for Visualizing Intersecting Sets", 'CRAN', '1.4.0')
 	]
 	Annotation = [
 		RNASuitePackage('org.Hs.eg.db', "Genome wide annotation for Human", 'Bioconductor', '3.18.0'),

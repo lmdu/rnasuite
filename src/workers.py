@@ -3,40 +3,35 @@ import traceback
 import pandas
 
 from rchitect import *
-
 from PySide6.QtCore import *
 
-__all__ = ['RNASuiteEdgerDEGWorker', 'RNASuiteDeseqDEGWorker',
-	'RNASuiteShowDEGWorker', 'RNASuiteDEGDistPlotWorker',
-	'RNASuiteDEGVolcanoPlotWorker'
+from utils import *
+
+__all__ = ['RNASuiteEdgerIdentifyWorker', 'RNASuiteDeseqIdentifyWorker',
+	'RNASuiteDeseqExtractWorker', 'RNASuiteEdgerExtractWorker',
+	'RNASuiteDEGDistPlotWorker',
+	'RNASuiteDEGVolcanoPlotWorker', 'RNASuiteDEGVennPlotWorker',
+	'RNASuiteDEGUpsetPlotWorker'
 ]
 
-class RNASuiteBaseDEGWorker(QObject):
+class RNASuiteBaseWorker(QThread):
 	error = Signal(str)
-	started = Signal()
-	finished = Signal()
+
 	script = None
+	function = None
+	rettype = None
 
 	def __init__(self, parent=None, params=None):
 		super().__init__(parent)
 		self.parent = parent
 		self.params = params
 
-	@property
-	def data(self):
-		pass
-
 	def submit(self, data):
 		self.parent.pyconn.send(data)
 
 	def prepare_data(self):
-		for var, val in self.data.items():
-			self.submit({
-				'action': 'data',
-				'dataframe': isinstance(val, dict),
-				'variable': var,
-				'value': val
-			})
+		for k, v in self.params.items():
+			self.params[k] = convert_dataframe_to_dict(v)
 
 	def source_file(self):
 		if self.script is None:
@@ -55,113 +50,42 @@ class RNASuiteBaseDEGWorker(QObject):
 		})
 
 	def run(self):
-		pass
-
-	def start(self):
 		try:
-			self.started.emit()
 			self.source_file()
 			self.prepare_data()
-			self.run()
+			self.submit({
+				'action': 'call',
+				'rtype': self.rettype,
+				'func': self.function,
+				'params': self.params
+			})
 
 		except:
 			self.error.emit(traceback.format_exc())
+		
 
-		finally:
-			self.finished.emit()
-
-class RNASuiteDeseqDEGWorker(RNASuiteBaseDEGWorker):
+class RNASuiteDeseqIdentifyWorker(RNASuiteBaseWorker):
 	script = 'R/deseq.R'
+	rettype = 'degs'
+	function = 'rnasuite_deseq_find_degs'
 
-	def __init__(self, parent, read_counts, sample_info, params, gene_names=None):
-		super().__init__(parent, params)
-		self.read_counts = read_counts
-		self.sample_info = sample_info
-		self.gene_names = gene_names
+class RNASuiteDeseqExtractWorker(RNASuiteBaseWorker):
+	rettype = 'degs'
+	function = 'rnasuite_deseq_extract_degs'
 
-	@property
-	def data(self):
-		return {
-			'read_counts': self.read_counts,
-			'sample_info': self.sample_info,
-			'deseq_design': self.params['design'],
-			'deseq_fdr': self.params['fdr'],
-			'deseq_logfc': self.params['lgfc'],
-			'deseq_contrast': [self.params['compare'], self.params['treatment'], self.params['control']]
-		}
-
-	def run(self):
-		self.submit({
-			'action': 'call',
-			'rtype': 'degs',
-			'func': 'deseq_analysis_pipeline'
-		})
-
-class RNASuiteEdgerDEGWorker(RNASuiteBaseDEGWorker):
+class RNASuiteEdgerIdentifyWorker(RNASuiteBaseWorker):
 	script = 'R/edger.R'
+	rettype = 'degs'
+	function = 'rnasuite_edger_find_degs'
 
-	def __init__(self, parent, read_counts, sample_info, params, gene_names=None):
-		super().__init__(parent, params)
-		self.read_counts = read_counts
-		self.sample_info = sample_info
-		self.gene_names = gene_names
+class RNASuiteEdgerExtractWorker(RNASuiteBaseWorker):
+	rettype = 'degs'
+	function = 'rnasuite_edger_extract_degs'
 
-	@property
-	def data(self):
-		return {
-			'read_counts': self.read_counts,
-			'sample_info': self.sample_info,
-			'edger_design': self.params['design'],
-			'edger_fdr': self.params['fdr'],
-			'edger_logfc': self.params['lgfc'],
-			'edger_compare': self.params['compare'],
-			'edger_replicate': self.params['replicate'],
-			'edger_method': self.params['method'],
-			'edger_bcv': self.params['bcv'],
-			'edger_contrast': [self.params['treatment'], self.params['control']]
-		}
-
-	def run(self):
-		self.submit({
-			'action': 'call',
-			'rtype': 'degs',
-			'func': 'edger_analysis_pipeline'
-		})
-
-class RNASuiteShowDEGWorker(RNASuiteBaseDEGWorker):
-	@property
-	def data(self):
-		if self.params['tool'] == 'deseq':
-			return {
-				'deseq_fdr': self.params['fdr'],
-				'deseq_logfc': self.params['lgfc'],
-				'deseq_contrast': [
-					self.params['compare'],
-					self.params['treatment'],
-					self.params['control']
-				]
-			}
-
-		elif self.params['tool'] == 'edger':
-			return {
-				'edger_fdr': self.params['fdr'],
-				'edger_logfc': self.params['lgfc'],
-				'edger_contrast': [
-					self.params['treatment'],
-					self.params['control']
-				]
-			}
-
-	def run(self):
-		func = '{}_show_degs'.format(self.params['tool'])
-		self.submit({
-			'action': 'call',
-			'rtype': 'degs',
-			'func': func
-		})
-
-class RNASuiteDEGDistPlotWorker(RNASuiteBaseDEGWorker):
+class RNASuiteDEGDistPlotWorker(RNASuiteBaseWorker):
 	script = 'R/distplot.R'
+	rettype = 'plot'
+	function = 'rnasuite_degs_dist_plot'
 
 	@property
 	def data(self):
@@ -181,8 +105,10 @@ class RNASuiteDEGDistPlotWorker(RNASuiteBaseDEGWorker):
 			'func': 'degs_dist_plot'
 		})
 
-class RNASuiteDEGVolcanoPlotWorker(RNASuiteBaseDEGWorker):
+class RNASuiteDEGVolcanoPlotWorker(RNASuiteBaseWorker):
 	script = 'R/volcanoplot.R'
+	rettype = 'plot'
+	function = 'rnasuite_degs_volcano_plot'
 
 	@property
 	def data(self):
@@ -202,4 +128,47 @@ class RNASuiteDEGVolcanoPlotWorker(RNASuiteBaseDEGWorker):
 			'action': 'call',
 			'rtype': 'plot',
 			'func': 'degs_volcano_plot'
+		})
+
+class RNASuiteDEGVennPlotWorker(RNASuiteBaseWorker):
+	script = 'R/vennplot.R'
+	rettype = 'plot'
+	function = 'rnasuite_degs_venn_plot'
+
+	@property
+	def data(self):
+		return {
+			'vennplot_tool': self.params['tool'],
+			'vennplot_contrasts': self.params['contrasts'],
+			'vennplot_percent': self.params['percent'],
+			'vennplot_colors': self.params['colors'],
+			'vennplot_opacity': self.params['opacity'],
+			'vennplot_degtype': self.params['degtype']
+		}
+
+	def run(self):
+		self.submit({
+			'action': 'call',
+			'rtype': 'plot',
+			'func': 'degs_venn_plot'
+		})
+
+class RNASuiteDEGUpsetPlotWorker(RNASuiteBaseWorker):
+	script = 'R/upsetplot.R'
+	rettype = 'plot'
+	function = 'rnasuite_degs_upset_plot'
+
+	@property
+	def data(self):
+		return {
+			'upsetplot_tool': self.params['tool'],
+			'upsetplot_contrasts': self.params['contrasts'],
+			'upsetplot_degtype': self.params['degtype']
+		}
+
+	def run(self):
+		self.submit({
+			'action': 'call',
+			'rtype': 'plot',
+			'func': 'degs_upset_plot'
 		})

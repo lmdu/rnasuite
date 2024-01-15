@@ -1,9 +1,26 @@
 from utils import *
 
-__all__ = ['RNASuiteDEGParameters', 'RNASuiteShowDEGParameters',
+__all__ = ['RNASuiteDeseqParameters', 'RNASuiteShowDEGParameters',
 	'RNASuiteEdgerParameters', 'RNASuiteDEGDistPlotParameters',
-	'RNASuiteDEGVolcanoPlotParameters', 'RNASuiteDEGVennPlotParameters'
+	'RNASuiteDEGVolcanoPlotParameters', 'RNASuiteDEGVennPlotParameters',
+	'RNASuiteDEGUpsetPlotParameters', 'RNASuiteDeseqMaPlotControlParameters'
 ]
+
+class RNASuiteParameter(dict):
+	def __init__(self, expose=True, default=None, index=False, options=[], **kwargs):
+		self.update(kwargs)
+		self['expose'] = expose
+		self['default'] = default
+
+		if kwargs['type'] == 'list':
+			self['index'] = index
+			self['options'] = options
+
+		elif kwargs['type'] == 'select':
+			self['options'] = options
+
+	def __getattr__(self, key):
+		return self[key]
 
 class RNASuiteParameters:
 	def __init__(self, *args):
@@ -13,70 +30,63 @@ class RNASuiteParameters:
 	def __getitem__(self, key):
 		return self.params[self.mapping[key]]
 
+	def __contains__(self, key):
+		return key in self.mapping
+
 	def __iter__(self):
 		for p in self.params:
 			yield p
 
-RNASuiteDEGParameters = RNASuiteParameters(
-	AttrDict(
+RNASuiteDeseqParameters = RNASuiteParameters(
+	RNASuiteParameter(
 		key = 'fdr',
 		type = 'float',
 		range = (0, 1),
 		step = 0.01,
+		decimal = 5,
 		display = 'FDR:',
 		default = 0.05
 	),
-	AttrDict(
-		key = 'lgfc',
+	RNASuiteParameter(
+		key = 'logfc',
 		type = 'int',
 		range = (0, 100),
 		step = 1,
 		display = 'log2FoldChange:',
 		default = 1
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'compare',
 		type = 'list',
-		options = [],
-		display = 'Comparison between:',
-		default = None,
-		index = False
+		display = 'Comparison between:'
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'control',
 		type = 'list',
-		options = [],
-		display = 'Control group:',
-		default = None,
-		index = False
+		display = 'Control group:'
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'treatment',
 		type = 'list',
 		options = [],
 		display = 'Treatment group:',
-		default = None,
-		index = False
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'eliminate',
 		type = 'select',
-		options = [],
-		display = 'Eliminate effect of factors:',
-		default = None,
-		index = False
+		display = 'Consider effect of factors:',
+		expose = False
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'design',
 		type = 'str',
-		display = "Model design formula:",
-		default = None
+		display = "Model design formula:"
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'custom',
 		type = 'bool',
 		display = "Custom design formula:",
-		default = False
+		expose = False
 	)
 )
 
@@ -328,12 +338,86 @@ RNASuiteDEGVennPlotParameters = RNASuiteParameters(
 		key = 'colors',
 		type = 'colors',
 		default = None,
-		display = 'Colors:'
+		display = 'Contrast colors:'
+	),
+	AttrDict(
+		key = 'opacity',
+		type = 'float',
+		range = (0, 1),
+		step = 0.1,
+		default = 0.5,
+		display = "Color opacity:"
 	),
 	AttrDict(
 		key = 'percent',
 		type = 'bool',
 		display = "Show percent values:",
 		default = False
+	),
+	AttrDict(
+		key = 'degtype',
+		type = 'list',
+		display = "DEG Type:",
+		options = ('All DEGs', 'Up-regulated', 'Down-regulated'),
+		default = None,
+		index = True
 	)
+)
+
+RNASuiteDEGUpsetPlotParameters = RNASuiteParameters(
+	AttrDict(
+		key = 'contrasts',
+		type = 'contrast',
+		default = None,
+		display = 'Contrasts:'
+	),
+	AttrDict(
+		key = 'degtype',
+		type = 'list',
+		display = "DEG Type:",
+		options = ('All DEGs', 'Up-regulated', 'Down-regulated'),
+		default = None,
+		index = True
+	)
+)
+
+RNASuiteDeseqMaPlotControlParameters = RNASuiteParameters(
+	AttrDict(
+		key = 'main',
+		type = 'str',
+		default = '',
+		display = "Title:"
+	),
+	AttrDict(
+		key = 'xlab',
+		type = 'str',
+		default = 'mean of normalized counts',
+		display = "X label:"
+	),
+	AttrDict(
+		key = 'ylim',
+		type = 'int',
+		range = (-1000, 1000),
+		step = 1,
+		default = 0,
+		display = "X Limits:"
+	),
+	AttrDict(
+		key = 'colNonSig',
+		type = 'color',
+		default = 'gray60',
+		display = "Non-significant point color:"
+	),
+	AttrDict(
+		key = 'colSig',
+		type = 'color',
+		default = 'blue',
+		display = "Significant point color:"
+	),
+	AttrDict(
+		key = 'colLine',
+		type = 'color',
+		default = 'gray40',
+		display = "Horizontal line color:"
+	),
 )

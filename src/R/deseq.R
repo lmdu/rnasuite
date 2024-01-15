@@ -6,7 +6,7 @@
 #@param list deseq_contrast, results for which groups comparison
 library(DESeq2)
 
-deseq_identify_degs <- function() {
+deseq_identify_degs <- function(read_counts, sample_info, design_formula) {
 	#convert to integer
 	read_counts <- round(read_counts)
 
@@ -17,25 +17,26 @@ deseq_identify_degs <- function() {
 	dds <- DESeqDataSetFromMatrix(
 		countData = read_counts,
 		colData = sample_info,
-		design = as.formula(deseq_design)
+		design = as.formula(design_formula)
 	)
 
 	deseq_results <<- DESeq(dds)
 }
 
-deseq_extract_degs <- function() {
+deseq_extract_degs <- function(fdr, logfc, contrast) {
 	deseq_degs <<- results(deseq_results,
 		alpha = deseq_fdr,
 		lfcThreshold = deseq_logfc,
-		contrast = deseq_contrast
+		contrast = contrast
 	)
 }
 
 deseq_plot_degs <- function() {
 	plotMA(deseq_degs)
+	return(as.integer(hgd_id()$id))
 }
 
-deseq_sig_degs <- function() {
+deseq_sig_degs <- function(fdr, logfc) {
 	sig_degs <- na.omit(deseq_degs)
 	sig_degs <- sig_degs[(sig_degs$padj < deseq_fdr & abs(sig_degs$log2FoldChange) >= deseq_logfc), ]
 	sig_degs <- sig_degs[order(sig_degs$padj), ]
@@ -49,28 +50,37 @@ deseq_normalized_counts <- function() {
 	return(norm_counts)
 }
 
-deseq_return_degs <- function() {
+deseq_return_degs <- function(contrast) {
 	out <- list(
 		normal_count = deseq_normalized_counts(),
 		degs_list = r_to_py(deseq_sig_degs()),
-		degs_versus = deseq_contrast
+		degs_plot = deseq_plot_degs(),
+		plot_type = "deseq_maplot",
+		degs_versus = contrast
 	)
 	return(out)
 }
 
-deseq_analysis_pipeline <- function() {
-	deseq_identify_degs()
-	deseq_extract_degs()
-	deseq_plot_degs()
-	deseq_return_degs()
+rnasuite_deseq_find_degs <- function(counts, samples, fdr, logfc, design, compare, treatment, control) {
+	contrast <- c(compare, treatment, control)
+	deseq_identify_degs(counts, samples, design)
+	deseq_extract_degs(fdr, logfc, contrast)
+	deseq_return_degs(contrast)
 }
 
-deseq_show_degs <- function() {
-	deseq_extract_degs()
-	deseq_plot_degs()
+rnasuite_deseq_extract_degs <- function(fdr, logfc, compare, treatment, control) {
+	contrast <- c(compare, treatment, control)
+	deseq_extract_degs(fdr, logfc, contrast)
 	out <- list(
 		degs_list = r_to_py(deseq_sig_degs()),
-		degs_versus = deseq_contrast
+		degs_plot = deseq_plot_degs(),
+		plot_type = "deseq_maplot",
+		degs_versus = contrast
 	)
 	return(out)
+}
+
+rnasuite_deseq_ma_plot <- function(...) {
+	plotMA(deseq_degs, ...)
+	return(as.integer(hgd_id()$id))
 }

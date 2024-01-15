@@ -2,7 +2,7 @@ QSvgWidget {
 	background: white;
 }
 
-QToolBar {
+QToolBar{
 	spacing: 8px;
 }
 

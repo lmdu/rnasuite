@@ -1,6 +1,7 @@
 import os
 import math
 
+import pandas
 from rchitect.utils import Rhome
 
 from PySide6.QtGui import *
@@ -9,15 +10,348 @@ from PySide6.QtWidgets import *
 from PySide6.QtSvgWidgets import *
 
 from utils import *
+from models import *
 from config import *
 from threads import *
 
-__all__ = ['RNASuitePackageInstallButton', 'RNASuiteWaitingSpinner',
+__all__ = ['create_parameter_widget', 'get_widgets_parameters',
+	'RNASuiteInputListWidget', 'RNASuiteOutputTreeWidget',
+	'RNASuitePackageInstallButton', 'RNASuiteWaitingSpinner',
 	'RNASuitePackageTreeView', 'RNASuitePackageInstallMessage',
 	'RNASuiteSpacerWidget', 'RNASuiteMultipleSelect',
 	'RNASuiteRGeneralSettingPage', 'RNASuiteColorButton',
 	'RNASuiteContrastVersusWidget', 'RNASuiteColorGroups'
 ]
+
+def create_parameter_widget(param, value=None):
+	match param.type:
+		case 'int':
+			widget = QSpinBox()
+			widget.setRange(*param.range)
+			widget.setSingleStep(param.step)
+
+			if value is not None:
+				widget.setValue(value)
+
+		case 'float':
+			widget = QDoubleSpinBox()
+			widget.setRange(*param.range)
+			widget.setSingleStep(param.step)
+			widget.setDecimals(5)
+
+			if value is not None:
+				widget.setValue(value)
+
+		case 'str':
+			widget = QLineEdit()
+
+			if value is not None:
+				widget.setText(value)
+
+		case 'list':
+			widget = QComboBox()
+			widget.addItems(param.options)
+
+			if value is not None:
+				if isinstance(value, int):
+					widget.setCurrentIndex(value)
+
+				else:
+					widget.setCurrentText(value)
+
+		case 'bool':
+			widget = QCheckBox()
+
+			if value is not None:
+				if value:
+					widget.setCheckState(Qt.Checked)
+
+				else:
+					widget.setCheckState(Qt.Uncheched)
+
+		case 'select':
+			widget = RNASuiteMultipleSelect()
+			widget.add_items(param.options)
+
+			if value is not None:
+				widget.set_text(value)
+
+		case 'text':
+			widget = QPlainTextEdit()
+
+			if value is not None:
+				widget.appendPlainText(value)
+
+		case 'color':
+			widget = RNASuiteColorButton()
+
+			if value is not None:
+				widget.set_color(value)
+
+		case 'colors':
+			widget = RNASuiteColorGroups()
+
+			if value is not None:
+				widget.set_colors(value)
+
+		case 'contrast':
+			widget = RNASuiteContrastVersusWidget()
+
+			if value is not None:
+				widget.set_contrasts(value)
+
+	return widget
+
+def get_widgets_parameters(widgets, params):
+	values = {}
+
+	for k, w in widgets.items():
+		p = params[k]
+
+		if not p.expose:
+			continue
+
+		match w:
+			case QAbstractSpinBox():
+				values[k] = w.value()
+
+			case QLineEdit():
+				values[k] = w.text().strip()
+
+			case QComboBox():
+				if p.index:
+					values[k] = w.currentIndex()
+				else:
+					values[k] = w.currentText()
+
+			case QCheckBox():
+				values[k] = w.checkState() == Qt.Checked
+
+			case QPlainTextEdit():
+				values[k] = w.toPlainText()
+
+			case RNASuiteMultipleSelect():
+				values[k] = w.get_text()
+
+			case RNASuiteColorButton():
+				values[k] = w.get_color()
+
+			case RNASuiteColorGroups():
+				values[k] = w.get_colors()
+
+			case RNASuiteContrastVersusWidget():
+				values[k] = w.get_contrasts()
+
+	return values
+
+class RNASuiteInputListItem(QWidget):
+	def __init__(self, parent=None, title=None, content=None, meta=None):
+		super().__init__(parent)
+
+		title_label = QLabel("<b><small>{}</small></b>".format(title), self)
+		content_label = QLabel("<small>{}</small>".format(content), self)
+		meta_label = QLabel("<small>{}</small>".format(meta))
+
+		main_layout = QVBoxLayout()
+		main_layout.setSpacing(0)
+		main_layout.setContentsMargins(0, 0, 0, 0)
+		main_layout.addWidget(title_label)
+		main_layout.addWidget(content_label)
+		main_layout.addWidget(meta_label, alignment=Qt.AlignRight)
+		self.setLayout(main_layout)
+
+class RNASuiteInputListWidget(QListWidget):
+	show_table = Signal(pandas.DataFrame)
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.parent = parent
+		self.setIconSize(QSize(28, 28))
+		self.setSpacing(2)
+		self.itemDoubleClicked.connect(self._on_open_table)
+
+	def sizeHint(self):
+		return QSize(200, 200)
+
+	def add_item_widget(self, index, icon, title, text, meta):
+		widget = RNASuiteInputListItem(self, title, text, meta)
+		item = QListWidgetItem()
+		item.setIcon(QIcon(icon))
+		self.insertItem(index, item)
+		self.setItemWidget(item, widget)
+		item.setSizeHint(widget.sizeHint())
+		return item
+
+	def read_file(self, file, delimiter=None):
+		if file.endswith('.csv'):
+			data = pandas.read_csv(file, index_col=0)
+
+		elif file.endswith('.tsv'):
+			data = pandas.read_csv(file, index_col=0, sep='\t')
+
+		elif file.endswith(('.xls', '.xlsx')):
+			data = pandas.read_excel(file, index_col=0)
+
+		else:
+			data = pandas.read_table(file, index_col=0, sep=delimiter)
+
+		return data
+
+	def has_data(self, dtype):
+		if hasattr(self, dtype):
+			x = getattr(self, dtype)
+
+			if len(x) > 0:
+				return True
+
+		return False
+
+	def get_groups(self):
+		return {c: list(self.sample_info[c].unique()) for c in self.sample_info.columns}
+
+	def get_tight(self, dtype):
+		match dtype:
+			case 'read_counts':
+				return self.read_counts.to_dict(orient='tight')
+
+			case 'sample_info':
+				return self.sample_info.to_dict(orient='tight')
+
+	def import_read_count(self, file, delimiter):
+		self.read_counts = self.read_file(file, delimiter)
+		self.count_file = file
+		genes = len(self.read_counts)
+		samples = len(self.read_counts.columns)
+
+		self.count_item = self.add_item_widget(0,
+			'icons/c.svg',
+			'Read Counts',
+			os.path.basename(file),
+			'Genes: {} Samples: {}'.format(genes, samples)
+		)
+
+	def import_sample_info(self, file, delimiter):
+		self.sample_info = self.read_file(file, delimiter)
+		self.sample_file = file
+		samples = len(self.sample_info)
+
+		self.sample_item = self.add_item_widget(1,
+			'icons/s.svg',
+			'Sample Information',
+			os.path.basename(file),
+			'Samples: {}'.format(samples)
+		)
+
+	@Slot()
+	def _on_open_table(self, item):
+		match item:
+			case self.count_item:
+				self.show_table.emit(self.read_counts)
+
+			case self.sample_item:
+				self.show_table.emit(self.sample_info)
+
+class RNASuiteOutputTreeWidget(QTreeView):
+	show_table = Signal(pandas.DataFrame)
+	show_panel = Signal(str)
+	show_plot = Signal(int)
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.datasets = {}
+		self.setRootIsDecorated(False)
+		self.doubleClicked.connect(self._on_row_clicked)
+
+		self.create_model()
+
+	def sizeHint(self):
+		return QSize(200, 500)
+
+	def create_model(self):
+		self._data = pandas.DataFrame(columns=['type', 'name', 'update', 'plot'])
+		self._model = RNASuiteOutputTreeModel(self)
+		self._model.load_data(self._data)
+		self.setModel(self._model)
+		self.setColumnHidden(3, True)
+		self.header().setStretchLastSection(False)
+		self.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+		self.header().setSectionResizeMode(1, QHeaderView.Stretch)
+		self.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+
+	def add_row(self, **row):
+		key = "{}-{}-{}".format(row['type'], row['name'], row['plot'])
+
+		if key in self.datasets:
+			index = self._data[(self._data['type'] == row['type']) & (self._data['name'] == row['name']) & (self._data['plot'] == row['plot'])].index
+			self._data.iloc[index, 2] = 1
+
+		else:
+			self._data = pandas.concat(
+				[pandas.DataFrame([row], columns = self._data.columns), self._data],
+				ignore_index = True
+			)
+			self._model.load_data(self._data)
+		
+		if row['plot']:
+			chart = row.pop('chart')
+			self.datasets[key] = chart
+
+		else:
+			data = row.pop('data')
+			data_frame = pandas.DataFrame.from_dict(data, orient='tight')
+			self.datasets[key] = data_frame
+
+	@Slot()
+	def receive(self, rtype, result):
+		match rtype:
+			case 'degs':
+				v = result['degs_versus']
+				contrast = "{} vs {}".format(v[-2], v[-1])
+
+				if 'normal_count' in result:
+					self.add_row(
+						type = 'Genes',
+						name = 'Noramlized Counts',
+						plot = 0,
+						update = 1,
+						data = result['normal_count']
+					)
+
+				if 'degs_list' in result:
+					self.add_row(
+						type = 'DEGs',
+						name = contrast,
+						plot = 0,
+						update = 1,
+						data = result['degs_list']
+					)
+
+				if 'degs_plot' in result:
+					self.add_row(
+						type = result['plot_type'],
+						name = contrast,
+						plot = 1,
+						update = 0,
+						chart = result['degs_plot']
+					)
+
+					self.show_panel.emit('deseq_maplot')
+
+	def _on_row_clicked(self, index):
+		row = index.row()
+		_type = self._data.iloc[row, 0]
+		name = self._data.iloc[row, 1]
+		plot = self._data.iloc[row, 3]
+		key = "{}-{}-{}".format(_type, name, plot)
+
+		if plot:
+			pass
+
+		else:
+			data = self.datasets[key]
+			self.show_table.emit(data)
+			self._data.iloc[row, 2] = 0
+			#self._model.refresh()
 
 class RNASuiteSpacerWidget(QWidget):
 	def __init__(self, parent=None):

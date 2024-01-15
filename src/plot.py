@@ -8,9 +8,12 @@ from PySide6.QtNetwork import *
 from PySide6.QtSvgWidgets import *
 from PySide6.QtWebSockets import *
 
+from utils import *
 from config import *
+from params import *
+from widgets import *
 
-__all__ = ['RNASuitePlotViewer']
+__all__ = ['RNASuitePlotViewer', 'RNASuitePlotStackedWidget']
 
 class RNASuitePlotViewer(QWidget):
 	error = Signal(str)
@@ -31,7 +34,7 @@ class RNASuitePlotViewer(QWidget):
 		self.view = QSvgWidget(self)
 		layout = QVBoxLayout()
 		layout.setContentsMargins(0, 0, 0, 0)
-		layout.addWidget(self.tool)
+		#layout.addWidget(self.tool)
 		layout.addWidget(self.view)
 		self.setLayout(layout)
 
@@ -209,3 +212,79 @@ class RNASuitePlotViewer(QWidget):
 
 		reply.deleteLater()
 
+class RNASuitePlotControlPanel(QWidget):
+	parameters = None
+	function = None
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.parent = parent
+		self.widgets = AttrDict()
+
+		self.create_widgets()
+		self.set_layouts()
+		self.register_widgets()
+		self.register_events()
+
+	@Slot()
+	def _on_update_clicked(self):
+		data = None
+		self.parent.pyconn.send(data)
+
+	def create_widgets(self):
+		self.update_button = QPushButton(self)
+		self.update_button.setText('Update plot')
+		self.update_button.setIcon(QIcon('icons/update.svg'))
+		self.update_button.clicked.connect(self._on_update_clicked)
+
+	def set_layouts(self):
+		self.widget_layout = QVBoxLayout()
+		main_layout = QVBoxLayout()
+		main_layout.addLayout(self.widget_layout)
+		main_layout.addWidget(self.update_button)
+		main_layout.addStretch()
+		self.setLayout(main_layout)
+
+	def register_widgets(self):
+		for i, p in enumerate(self.parameters):
+			self.widgets[p.key] = create_parameter_widget(p)
+			label = QLabel(p.display, self)
+			self.widget_layout.addWidget(label)
+			self.widget_layout.addWidget(self.widgets[p.key])
+
+			if 'help' in p:
+				info = QLabel("<font color='gray'>{}</font>".format(p.help), self)
+				#info.setWordWrap(True)
+				self.widget_layout.addWidget(info)
+
+	def register_events(self):
+		pass
+
+	def get_param_values(self):
+		values = get_widgets_parameters(self.widgets, self.parameters)
+		return values
+
+class RNASuiteDeseqMaPlotControlPanel(RNASuitePlotControlPanel):
+	parameters = RNASuiteDeseqMaPlotControlParameters
+
+class RNASuitePlotStackedWidget(QStackedWidget):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.panel_mapping = {}
+
+	def sizeHint(self):
+		return QSize(200, 10)
+
+	def add_panel(self, panel):
+		match panel:
+			case 'deseq_maplot':
+				panel_widget = RNASuiteDeseqMaPlotControlPanel(self)
+				
+		index = self.addWidget(panel_widget)
+		self.panel_mapping[panel] = index
+
+	def show_panel(self, panel):
+		if panel in self.panel_mapping:
+			self.setCurrentIndex(self.panel_mapping[panel])
+		else:
+			self.add_panel(panel)

@@ -1,7 +1,9 @@
 import socket
+import pandas
 
 __all__ = ['AttrDict', 'ClassDict', 'get_unused_port', 'format_number_display',
-	'RNASuiteError', 'RNASuiteTable', 'RNASuitePackage', 'compare_version'
+	'RNASuiteError', 'RNASuiteTable', 'RNASuitePackage', 'compare_version',
+	'convert_dataframe_to_dict', 'convert_dict_to_dataframe'
 ]
 
 class ClassDict:
@@ -74,6 +76,18 @@ def compare_version(ver1, ver2):
 			return 1
 		elif v1 < v2:
 			return -1
+
+def convert_dataframe_to_dict(data):
+	if isinstance(data, pandas.DataFrame):
+		return data.to_dict(orient='tight')
+	else:
+		return data
+
+def convert_dict_to_dataframe(data):
+	if isinstance(data, dict):
+		return pandas.DataFrame.from_dict(data, orient='tight')
+	else:
+		return data
 
 if __name__ == '__main__':
 	print(get_unused_port())
