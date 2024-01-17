@@ -14,7 +14,7 @@ from threads import *
 
 __all__ = ['RNASuitePackageManagerDialog', 'RNASuiteDeseqParameterDialog',
 	'RNASuiteShowDEGParameterDialog', 'RNASuiteGlobalSettingDialog',
-	'RNASuiteEdgerParameterDialog', 'RNASuiteDEGDistPlotParameterDialog',
+	'RNASuiteEdgerParameterDialog', 'RNASuiteDegsDistPlotParameterDialog',
 	'RNASuiteDEGVolcanoPlotParameterDialog', 'RNASuiteDEGVennPlotParameterDialog',
 	'RNASuiteDEGUpsetPlotParameterDialog', 'RNASuiteColumnSeparatorDialog',
 	'RNASuiteShowPandasDataDialog'
@@ -273,21 +273,26 @@ class RNASuiteParameterDialog(QDialog):
 		return QSize(400, 100)
 
 	def register_widgets(self):
-		for i, p in enumerate(self.parameters):
+		for p in self.parameters:
 			val = self.defines.get(p.key, None) or p.default
-			self.widgets[p.key] = create_parameter_widget(p, val)
+			self.widgets[p.key] = create_parameter_widget(p)
+			set_parameter_widget_value(self.widgets[p.key], val, p.index)
 			self.widget_layout.addRow(p.display, self.widgets[p.key])
-
-			if 'help' in p:
-				info = QLabel("<font color='gray'>{}</font>".format(p.help), self)
-				#info.setWordWrap(True)
-				self.widget_layout.addRow('', info)
 
 	def register_events(self):
 		pass
 
 	def get_param_values(self):
-		values = get_widgets_parameters(self.widgets, self.parameters)
+		values = {}
+
+		for k, w in self.widgets.items():
+			p = self.parameters[k]
+
+			if not p.expose:
+				continue
+
+			values[k] = get_parameter_widget_value(w, p.index)
+
 		return values
 
 	@classmethod
@@ -311,7 +316,6 @@ class RNASuiteDeseqParameterDialog(RNASuiteParameterDialog):
 
 	@classmethod
 	def get_preset_datas(self, parent):
-		parent.global_params['tool'] = 'deseq'
 		defines = parent.global_params.get(self.pname, {})
 		dataset = parent.input_list.get_groups()
 		return defines, dataset
@@ -323,6 +327,7 @@ class RNASuiteDeseqParameterDialog(RNASuiteParameterDialog):
 
 		if dlg.exec() == QDialog.Accepted:
 			params = dlg.get_param_values()
+			params['tool'] = 'deseq'
 			params['counts'] = parent.input_list.read_counts
 			params['samples'] = parent.input_list.sample_info
 			parent.global_params[dlg.pname] = params
@@ -430,15 +435,33 @@ class RNASuiteShowDEGParameterDialog(RNASuiteParameterDialog):
 		self.widgets.treatment.clear()
 		self.widgets.treatment.addItems(groups)
 
-class RNASuiteDEGDistPlotParameterDialog(RNASuiteParameterDialog):
-	parameters = RNASuiteDEGDistPlotParameters
-	title = 'DEG Distribution Plot'
+class RNASuiteDegsDistPlotParameterDialog(RNASuiteParameterDialog):
+	parameters = RNASuiteDegsDistPlotParameters
+	title = 'DEGs Distribution Plot'
+	pname = 'deg_distplot'
 
-	#def get_param_values(self):
-	#	params = super().get_param_values()
-	#	compares = params['compares'].strip().split(',')
-	#	params['contrasts'] = [comp.strip().split(' vs ') for comp in compares]
-	#	return params
+	@classmethod
+	def get_preset_datas(self, parent):
+		deparam = parent.global_params.get('degs', {})
+		defines = parent.global_params.get(self.pname, {})
+		compare = deparam['compare']
+		groups = parent.input_list.get_groups()
+		dataset = groups[compare]
+		return deparam, defines, dataset
+
+	@classmethod
+	def get_params(cls, parent=None):
+		deparam, defines, dataset = cls.get_preset_datas(parent)
+		dlg = cls(parent, defines, dataset)
+
+		if dlg.exec() == QDialog.Accepted:
+			params = dlg.get_param_values()
+			params['tool'] = deparam['tool']
+			params['fdr'] = deparam['fdr']
+			params['logfc'] = deparam['logfc']
+			params['compare'] = deparam['compare']
+			parent.global_params[dlg.pname] = params
+			return params
 
 	def register_events(self):
 		self.widgets.contrasts.set_selection(self.dataset)

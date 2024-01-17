@@ -149,6 +149,17 @@ class RNASuitePlotViewer(QWidget):
 	def save_plot_file(self):
 		pass
 
+	def remove_plot(self, plot_id):
+		self.parent.pyconn.send({
+			'action': 'call',
+			'func': 'hgd_remove',
+			'params': {'page': plot_id+1}
+		})
+
+	def show_plot(self, plot_id):
+		self.plot_id = plot_id
+		self.redraw_plot()
+
 	def get_plot(self, **kwargs):
 		#kwargs['token'] = HTTPGD_TOKEN
 		kwargs['renderer'] = 'svgp'
@@ -215,6 +226,7 @@ class RNASuitePlotViewer(QWidget):
 class RNASuitePlotControlPanel(QWidget):
 	parameters = None
 	function = None
+	plotname = None
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -225,51 +237,122 @@ class RNASuitePlotControlPanel(QWidget):
 		self.set_layouts()
 		self.register_widgets()
 		self.register_events()
+		self.group_widgets()
 
 	@Slot()
 	def _on_update_clicked(self):
-		data = None
-		self.parent.pyconn.send(data)
+		self.parent.pyconn.send({
+			'action': 'call',
+			'rtype': 'plot',
+			'func': self.function,
+			'params': self.get_param_values()
+		})
 
 	def create_widgets(self):
+		self.title_label = QLabel("<b>{}</b>".format(self.plotname), self)
+		self.param_widgets = RNASuiteAccordionWidget(self)
 		self.update_button = QPushButton(self)
 		self.update_button.setText('Update plot')
 		self.update_button.setIcon(QIcon('icons/update.svg'))
 		self.update_button.clicked.connect(self._on_update_clicked)
 
 	def set_layouts(self):
-		self.widget_layout = QVBoxLayout()
-		main_layout = QVBoxLayout()
-		main_layout.addLayout(self.widget_layout)
-		main_layout.addWidget(self.update_button)
-		main_layout.addStretch()
-		self.setLayout(main_layout)
+		self.main_layout = QVBoxLayout(self)
+		self.main_layout.addWidget(self.title_label)
+		self.main_layout.addWidget(self.param_widgets)
+		#self.main_layout.addLayout(self.widget_layout)
+		self.main_layout.addWidget(self.update_button)
+		self.main_layout.addStretch()
 
 	def register_widgets(self):
-		for i, p in enumerate(self.parameters):
+		for p in self.parameters:
 			self.widgets[p.key] = create_parameter_widget(p)
-			label = QLabel(p.display, self)
-			self.widget_layout.addWidget(label)
-			self.widget_layout.addWidget(self.widgets[p.key])
+			set_parameter_widget_value(self.widgets[p.key], p.default, p.index)
 
-			if 'help' in p:
-				info = QLabel("<font color='gray'>{}</font>".format(p.help), self)
-				#info.setWordWrap(True)
-				self.widget_layout.addWidget(info)
+	def restore_widgets(self):
+		for p in self.parameters:
+			set_parameter_widget_value(self.widgets[p.key], p.default, p.index)
+
+	def reset_widgets(self, params):
+		for k, v in params.items():
+			if k in self.widgets:
+				p = self.parameters[k]
+				set_parameter_widget_value(self.widgets[k], v, p.index)
+
+	def group_widgets(self):
+		for group in self.groups:
+			keys = self.groups[group]
+
+			widgets = []
+			for k in keys:
+				p = self.parameters[k]
+				label = QLabel(p.display)
+				widgets.append((label, self.widgets[k]))
+
+			self.param_widgets.add_accordions(group, widgets)
 
 	def register_events(self):
 		pass
 
-	def get_param_values(self):
-		values = get_widgets_parameters(self.widgets, self.parameters)
+	def correct_param_values(self, values):
 		return values
+
+	def get_param_values(self):
+		values = {}
+
+		for k, w in self.widgets.items():
+			p = self.parameters[k]
+
+			if not p.expose:
+				continue
+
+			values[k] = get_parameter_widget_value(w, p.index)
+
+		return self.correct_param_values(values)
 
 class RNASuiteDeseqMaPlotControlPanel(RNASuitePlotControlPanel):
 	parameters = RNASuiteDeseqMaPlotControlParameters
+	function = 'rnasuite_deseq_ma_plot_update'
+	plotname = 'DESeq2 MA Plot'
+
+	@property
+	def groups(self):
+		return {
+			'Title and labels': ['main', 'xlab'],
+			'Y limit': ['ylim'],
+			'Point colors': ['colNonSig', 'colSig'],
+			'Line color': ['colLine']
+		}
+
+	def correct_param_values(self, values):
+		if not any(values['ylim']):
+			values['ylim'] = None
+
+		degparam = self.parent.global_params['degs']
+		values['treatment'] = degparam['treatment']
+		values['control'] = degparam['control']
+
+		return values
+
+class RNASuiteDegsDistPlotControlPanel(RNASuitePlotControlPanel):
+	parameters = RNASuiteDegsDistPlotControlParameters
+	function = 'rnasuite_degs_dist_plot_update'
+	plotname = 'DEGs Distribution Plot'
+
+	@property
+	def groups(self):
+		return {
+			'Plot type': ['plot_type'],
+			'Title and labels': ['plot_title', 'x_label', 'x_rotate', 'y_label', 'show_label'],
+			'Legend': ['legend_title'],
+			'Fill colors': ['bar_colors'],
+			'Theme': ['theme_name']
+		}
 
 class RNASuitePlotStackedWidget(QStackedWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
+		self.parent = parent
 		self.panel_mapping = {}
 
 	def sizeHint(self):
@@ -278,8 +361,11 @@ class RNASuitePlotStackedWidget(QStackedWidget):
 	def add_panel(self, panel):
 		match panel:
 			case 'deseq_maplot':
-				panel_widget = RNASuiteDeseqMaPlotControlPanel(self)
-				
+				panel_widget = RNASuiteDeseqMaPlotControlPanel(self.parent)
+
+			case 'deg_distplot':
+				panel_widget = RNASuiteDegsDistPlotControlPanel(self.parent)
+
 		index = self.addWidget(panel_widget)
 		self.panel_mapping[panel] = index
 

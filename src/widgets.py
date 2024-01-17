@@ -14,24 +14,23 @@ from models import *
 from config import *
 from threads import *
 
-__all__ = ['create_parameter_widget', 'get_widgets_parameters',
+__all__ = ['create_parameter_widget', 'set_parameter_widget_value',
+	'get_parameter_widget_value',
 	'RNASuiteInputListWidget', 'RNASuiteOutputTreeWidget',
 	'RNASuitePackageInstallButton', 'RNASuiteWaitingSpinner',
 	'RNASuitePackageTreeView', 'RNASuitePackageInstallMessage',
 	'RNASuiteSpacerWidget', 'RNASuiteMultipleSelect',
 	'RNASuiteRGeneralSettingPage', 'RNASuiteColorButton',
-	'RNASuiteContrastVersusWidget', 'RNASuiteColorGroups'
+	'RNASuiteContrastVersusWidget', 'RNASuiteColorGroups',
+	'RNASuiteAccordionWidget', 'RNASuiteAxisLimitWidget'
 ]
 
-def create_parameter_widget(param, value=None):
+def create_parameter_widget(param):
 	match param.type:
 		case 'int':
 			widget = QSpinBox()
 			widget.setRange(*param.range)
 			widget.setSingleStep(param.step)
-
-			if value is not None:
-				widget.setValue(value)
 
 		case 'float':
 			widget = QDoubleSpinBox()
@@ -39,110 +38,210 @@ def create_parameter_widget(param, value=None):
 			widget.setSingleStep(param.step)
 			widget.setDecimals(5)
 
-			if value is not None:
-				widget.setValue(value)
-
 		case 'str':
 			widget = QLineEdit()
-
-			if value is not None:
-				widget.setText(value)
 
 		case 'list':
 			widget = QComboBox()
 			widget.addItems(param.options)
 
-			if value is not None:
-				if isinstance(value, int):
-					widget.setCurrentIndex(value)
-
-				else:
-					widget.setCurrentText(value)
-
 		case 'bool':
 			widget = QCheckBox()
-
-			if value is not None:
-				if value:
-					widget.setCheckState(Qt.Checked)
-
-				else:
-					widget.setCheckState(Qt.Uncheched)
 
 		case 'select':
 			widget = RNASuiteMultipleSelect()
 			widget.add_items(param.options)
 
-			if value is not None:
-				widget.set_text(value)
-
 		case 'text':
 			widget = QPlainTextEdit()
-
-			if value is not None:
-				widget.appendPlainText(value)
 
 		case 'color':
 			widget = RNASuiteColorButton()
 
-			if value is not None:
-				widget.set_color(value)
-
 		case 'colors':
 			widget = RNASuiteColorGroups()
-
-			if value is not None:
-				widget.set_colors(value)
 
 		case 'contrast':
 			widget = RNASuiteContrastVersusWidget()
 
-			if value is not None:
-				widget.set_contrasts(value)
+		case 'limit':
+			widget = RNASuiteAxisLimitWidget()
+			widget.set_ranges(*param.range)
+			widget.set_steps(param.step)
 
 	return widget
 
-def get_widgets_parameters(widgets, params):
-	values = {}
+def set_parameter_widget_value(widget, value=None, index=False):
+	if value is None:
+		return
 
-	for k, w in widgets.items():
-		p = params[k]
+	match widget:
+		case QAbstractSpinBox():
+			widget.setValue(value)
 
-		if not p.expose:
-			continue
+		case QLineEdit():
+			widget.setText(value)
 
-		match w:
-			case QAbstractSpinBox():
-				values[k] = w.value()
+		case QComboBox():
+			if index:
+				widget.setCurrentIndex(value)
+			else:
+				widget.setCurrentText(value)
 
-			case QLineEdit():
-				values[k] = w.text().strip()
+		case QCheckBox():
+			widget.setChecked(value)
 
-			case QComboBox():
-				if p.index:
-					values[k] = w.currentIndex()
-				else:
-					values[k] = w.currentText()
+		case QPlainTextEdit():
+			widget.setPlainText(value)
 
-			case QCheckBox():
-				values[k] = w.checkState() == Qt.Checked
+		case RNASuiteMultipleSelect():
+			widget.set_text(value)
 
-			case QPlainTextEdit():
-				values[k] = w.toPlainText()
+		case RNASuiteColorButton():
+			widget.set_color(value)
 
-			case RNASuiteMultipleSelect():
-				values[k] = w.get_text()
+		case RNASuiteColorGroups():
+			widget.set_colors(value)
 
-			case RNASuiteColorButton():
-				values[k] = w.get_color()
+		case RNASuiteContrastVersusWidget():
+			widget.set_contrasts(value)
 
-			case RNASuiteColorGroups():
-				values[k] = w.get_colors()
+		case RNASuiteAxisLimitWidget():
+			widget.set_limits(value)
 
-			case RNASuiteContrastVersusWidget():
-				values[k] = w.get_contrasts()
+def get_parameter_widget_value(widget, index=False):
+	match widget:
+		case QAbstractSpinBox():
+			value = widget.value()
 
-	return values
+		case QLineEdit():
+			value = widget.text()
+
+		case QComboBox():
+			if index:
+				value = widget.currentIndex()
+			else:
+				value = widget.currentText()
+
+		case QCheckBox():
+			value = widget.isChecked()
+
+		case QPlainTextEdit():
+			value = widget.toPlainText()
+
+		case RNASuiteMultipleSelect():
+			value = widget.get_text()
+
+		case RNASuiteColorButton():
+			value = widget.get_color()
+
+		case RNASuiteColorGroups():
+			value = widget.get_colors()
+
+		case RNASuiteContrastVersusWidget():
+			value = widget.get_contrasts()
+
+		case RNASuiteAxisLimitWidget():
+			value = widget.get_limits()
+
+	return value
+
+class RNASuiteAxisLimitWidget(QWidget):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+
+		self.create_widgets()
+		self.set_layouts()
+
+	def sizeHint(self):
+		return QSize(100, 10)
+
+	def create_widgets(self):
+		self.min_limit = QDoubleSpinBox(self)
+		#self.min_limit.setDecimals(5)
+		self.join_label = QLabel("~", self)
+		self.max_limit = QDoubleSpinBox(self)
+		self.max_limit.setDecimals(2)
+
+	def set_layouts(self):
+		main_layout = QHBoxLayout()
+		main_layout.setContentsMargins(0, 0, 0, 0)
+		main_layout.addWidget(self.min_limit, 1)
+		main_layout.addWidget(self.join_label)
+		main_layout.addWidget(self.max_limit, 1)
+		self.setLayout(main_layout)
+
+	def set_ranges(self, minv, maxv):
+		self.min_limit.setRange(minv, maxv)
+		self.max_limit.setRange(minv, maxv)
+
+	def set_steps(self, step=1):
+		self.min_limit.setSingleStep(step)
+		self.max_limit.setSingleStep(step)
+
+	def get_limits(self):
+		return (self.min_limit.value(), self.max_limit.value())
+
+	def set_limits(self, limits):
+		self.min_limit.setValue(limits[0])
+		self.max_limit.setValue(limits[1])
+
+class RNASuiteAccordionHeader(QPushButton):
+	def __init__(self, parent=None, title=None):
+		super().__init__(parent)
+		self.setText(title)
+		self.setCheckable(True)
+		self.expand_icon = QIcon('icons/down.svg')
+		self.collapse_icon = QIcon('icons/right.svg')
+		self.setIcon(self.collapse_icon)
+		self.clicked.connect(self._on_clicked)
+
+	def _on_clicked(self):
+		if self.isChecked():
+			self.setIcon(self.expand_icon)
+
+		else:
+			self.setIcon(self.collapse_icon)
+
+class RNASuiteAccordionItem(QWidget):
+	def __init__(self, parent=None, title=None):
+		super().__init__(parent)
+		
+		self.header = RNASuiteAccordionHeader(self, title)
+		self.content = QWidget(self)
+		self.content.setVisible(False)
+		self.header.toggled.connect(self.content.setVisible)
+
+		self.set_layouts()
+
+	def set_layouts(self):
+		self.main_layout = QVBoxLayout()
+		self.main_layout.setContentsMargins(0, 0, 0, 0)
+		self.main_layout.addWidget(self.header)
+		self.main_layout.addWidget(self.content)
+		self.setLayout(self.main_layout)
+
+		self.content_layout = QVBoxLayout()
+		self.content_layout.setContentsMargins(0, 0, 0, 10)
+		self.content.setLayout(self.content_layout)
+
+	def add_widgets(self, widgets):
+		for label, widget in widgets:
+			self.content_layout.addWidget(label)
+			self.content_layout.addWidget(widget)
+
+class RNASuiteAccordionWidget(QWidget):
+	def __init__(self, parent=None):
+		super().__init__(parent)
+
+		self.main_layout = QVBoxLayout()
+		self.main_layout.setContentsMargins(0, 0, 0, 0)
+		self.setLayout(self.main_layout)
+
+	def add_accordions(self, title, widgets):
+		accordion = RNASuiteAccordionItem(self, title)
+		accordion.add_widgets(widgets)
+		self.main_layout.addWidget(accordion)
 
 class RNASuiteInputListItem(QWidget):
 	def __init__(self, parent=None, title=None, content=None, meta=None):
@@ -252,12 +351,14 @@ class RNASuiteInputListWidget(QListWidget):
 				self.show_table.emit(self.sample_info)
 
 class RNASuiteOutputTreeWidget(QTreeView):
-	show_table = Signal(pandas.DataFrame)
+	show_table = Signal(object)
 	show_panel = Signal(str)
 	show_plot = Signal(int)
+	remove_plot = Signal(int)
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
+		self.table_id = 0
 		self.datasets = {}
 		self.setRootIsDecorated(False)
 		self.doubleClicked.connect(self._on_row_clicked)
@@ -268,90 +369,83 @@ class RNASuiteOutputTreeWidget(QTreeView):
 		return QSize(200, 500)
 
 	def create_model(self):
-		self._data = pandas.DataFrame(columns=['type', 'name', 'update', 'plot'])
+		self._data = pandas.DataFrame(columns=['name', 'update', 'plot', 'id', 'type'])
 		self._model = RNASuiteOutputTreeModel(self)
 		self._model.load_data(self._data)
 		self.setModel(self._model)
+		self.setColumnHidden(2, True)
 		self.setColumnHidden(3, True)
+		self.setColumnHidden(4, True)
 		self.header().setStretchLastSection(False)
-		self.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-		self.header().setSectionResizeMode(1, QHeaderView.Stretch)
-		self.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+		self.header().setSectionResizeMode(0, QHeaderView.Stretch)
+		self.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
 
 	def add_row(self, **row):
-		key = "{}-{}-{}".format(row['type'], row['name'], row['plot'])
+		if (self._data['name'].eq(row['name'])).any():
+			index = self._data[(self._data['name'] == row['name'])].index
+			self._data.iloc[index, 1] = 1
+			data_id = int(self._data.iloc[index, 3])
 
-		if key in self.datasets:
-			index = self._data[(self._data['type'] == row['type']) & (self._data['name'] == row['name']) & (self._data['plot'] == row['plot'])].index
-			self._data.iloc[index, 2] = 1
+			if row['plot']:
+				row['data'] = int(row['data'])
+				if data_id != row['data']:
+					self.remove_plot.emit(data_id)
+
+				self._data.loc[self._data['plot'] == 1, 'update'] = 0
+				self._data.iloc[index, 3] = row['data']
+				self._data.iloc[index, 1] = 1
+
+			else:
+				self.datasets[data_id] = pandas.DataFrame.from_dict(row['data'], orient='tight')
 
 		else:
+			data = row.pop('data')
+
+			if row['plot']:
+				data_id = int(data)
+
+			else:
+				self.table_id += 1
+				data_id = self.table_id
+				self.datasets[data_id] = pandas.DataFrame.from_dict(data, orient='tight')
+
+			row['id'] = data_id
 			self._data = pandas.concat(
 				[pandas.DataFrame([row], columns = self._data.columns), self._data],
 				ignore_index = True
 			)
 			self._model.load_data(self._data)
-		
-		if row['plot']:
-			chart = row.pop('chart')
-			self.datasets[key] = chart
-
-		else:
-			data = row.pop('data')
-			data_frame = pandas.DataFrame.from_dict(data, orient='tight')
-			self.datasets[key] = data_frame
 
 	@Slot()
-	def receive(self, rtype, result):
-		match rtype:
-			case 'degs':
-				v = result['degs_versus']
-				contrast = "{} vs {}".format(v[-2], v[-1])
+	def receive(self, results):
+		for result in results:
+			self.add_row(
+				name = result[1],
+				update = 1,
+				plot = int(result[0]),
+				data = result[2],
+				type = result[3]
+			)
 
-				if 'normal_count' in result:
-					self.add_row(
-						type = 'Genes',
-						name = 'Noramlized Counts',
-						plot = 0,
-						update = 1,
-						data = result['normal_count']
-					)
-
-				if 'degs_list' in result:
-					self.add_row(
-						type = 'DEGs',
-						name = contrast,
-						plot = 0,
-						update = 1,
-						data = result['degs_list']
-					)
-
-				if 'degs_plot' in result:
-					self.add_row(
-						type = result['plot_type'],
-						name = contrast,
-						plot = 1,
-						update = 0,
-						chart = result['degs_plot']
-					)
-
-					self.show_panel.emit('deseq_maplot')
+			if result[0]:
+				self.show_panel.emit(result[3])
 
 	def _on_row_clicked(self, index):
 		row = index.row()
-		_type = self._data.iloc[row, 0]
-		name = self._data.iloc[row, 1]
-		plot = self._data.iloc[row, 3]
-		key = "{}-{}-{}".format(_type, name, plot)
+		plot = self._data.iloc[row, 2]
+		did = self._data.iloc[row, 3]
+		ptype = self._data.iloc[row, 4]
 
 		if plot:
-			pass
+			self.show_plot.emit(did)
+			self.show_panel.emit(ptype)
+			self._data.loc[self._data['plot'] == 1, 'update'] = 0
+			self._data.iloc[row, 1] = 1
 
 		else:
-			data = self.datasets[key]
+			data = self.datasets[did]
 			self.show_table.emit(data)
-			self._data.iloc[row, 2] = 0
-			#self._model.refresh()
+			self._data.iloc[row, 1] = 0
 
 class RNASuiteSpacerWidget(QWidget):
 	def __init__(self, parent=None):

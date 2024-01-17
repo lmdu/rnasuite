@@ -9,7 +9,7 @@ from utils import *
 
 __all__ = ['RNASuiteEdgerIdentifyWorker', 'RNASuiteDeseqIdentifyWorker',
 	'RNASuiteDeseqExtractWorker', 'RNASuiteEdgerExtractWorker',
-	'RNASuiteDEGDistPlotWorker',
+	'RNASuiteDegsDistPlotWorker',
 	'RNASuiteDEGVolcanoPlotWorker', 'RNASuiteDEGVennPlotWorker',
 	'RNASuiteDEGUpsetPlotWorker'
 ]
@@ -55,7 +55,6 @@ class RNASuiteBaseWorker(QThread):
 			self.prepare_data()
 			self.submit({
 				'action': 'call',
-				'rtype': self.rettype,
 				'func': self.function,
 				'params': self.params
 			})
@@ -66,48 +65,24 @@ class RNASuiteBaseWorker(QThread):
 
 class RNASuiteDeseqIdentifyWorker(RNASuiteBaseWorker):
 	script = 'R/deseq.R'
-	rettype = 'degs'
 	function = 'rnasuite_deseq_find_degs'
 
 class RNASuiteDeseqExtractWorker(RNASuiteBaseWorker):
-	rettype = 'degs'
 	function = 'rnasuite_deseq_extract_degs'
 
 class RNASuiteEdgerIdentifyWorker(RNASuiteBaseWorker):
 	script = 'R/edger.R'
-	rettype = 'degs'
 	function = 'rnasuite_edger_find_degs'
 
 class RNASuiteEdgerExtractWorker(RNASuiteBaseWorker):
-	rettype = 'degs'
 	function = 'rnasuite_edger_extract_degs'
 
-class RNASuiteDEGDistPlotWorker(RNASuiteBaseWorker):
+class RNASuiteDegsDistPlotWorker(RNASuiteBaseWorker):
 	script = 'R/distplot.R'
-	rettype = 'plot'
-	function = 'rnasuite_degs_dist_plot'
-
-	@property
-	def data(self):
-		return {
-			'distplot_tool': self.params['tool'],
-			'distplot_contrasts': self.params['contrasts'],
-			'distplot_type': self.params['plot'],
-			'distplot_label': self.params['showval'],
-			'distplot_rotate': self.params['rotate'],
-			'distplot_colors': [self.params['ucolor'], self.params['dcolor']]
-		}
-
-	def run(self):
-		self.submit({
-			'action': 'call',
-			'rtype': 'plot',
-			'func': 'degs_dist_plot'
-		})
+	function = 'rnasuite_degs_dist_plot_run'
 
 class RNASuiteDEGVolcanoPlotWorker(RNASuiteBaseWorker):
 	script = 'R/volcanoplot.R'
-	rettype = 'plot'
 	function = 'rnasuite_degs_volcano_plot'
 
 	@property

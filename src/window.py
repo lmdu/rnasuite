@@ -575,15 +575,18 @@ class RNASuiteMainWindow(QMainWindow):
 
 	@Slot()
 	def do_plot_degs_dist(self):
-		degs_params = self.stored_params.get('degs', {})
-		samples = self.table_widgets.get_data('sample_info')
-		dataset = list(samples[degs_params['compare']].unique())
-		defines = self.stored_params.get('distplot', {})
-		params = RNASuiteDEGDistPlotParameterDialog.get_params(self, defines, dataset)
-		params['tool'] = degs_params['tool']
-		worker = RNASuiteDEGDistPlotWorker(self, params)
+		#degs_params = self.stored_params.get('degs', {})
+		#samples = self.table_widgets.get_data('sample_info')
+		#dataset = list(samples[degs_params['compare']].unique())
+		#defines = self.stored_params.get('distplot', {})
+		params = RNASuiteDegsDistPlotParameterDialog.get_params(self)
+
+		if not params:
+			return
+		#params['tool'] = degs_params['tool']
+		worker = RNASuiteDegsDistPlotWorker(self, params)
 		self.run_analysis_worker(worker)
-		self.stored_params['distplot'] = params
+		#self.stored_params['distplot'] = params
 
 	@Slot()
 	def do_plot_degs_venn(self):
@@ -643,6 +646,8 @@ class RNASuiteMainWindow(QMainWindow):
 		#self.output_tabs = QTabWidget(self)
 		self.output_list = RNASuiteOutputTreeWidget(self)
 		self.output_list.show_table.connect(self._on_show_table_data)
+		self.output_list.show_plot.connect(self.plot_viewer.show_plot)
+		self.output_list.remove_plot.connect(self.plot_viewer.remove_plot)
 		self.output_list.show_panel.connect(self.plot_stack.show_panel)
 		self.output_dock = QDockWidget("Output", self)
 		#self.output_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)

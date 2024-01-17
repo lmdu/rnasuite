@@ -1,9 +1,10 @@
 from utils import *
 
 __all__ = ['RNASuiteDeseqParameters', 'RNASuiteShowDEGParameters',
-	'RNASuiteEdgerParameters', 'RNASuiteDEGDistPlotParameters',
+	'RNASuiteEdgerParameters', 'RNASuiteDegsDistPlotParameters',
 	'RNASuiteDEGVolcanoPlotParameters', 'RNASuiteDEGVennPlotParameters',
-	'RNASuiteDEGUpsetPlotParameters', 'RNASuiteDeseqMaPlotControlParameters'
+	'RNASuiteDEGUpsetPlotParameters', 'RNASuiteDeseqMaPlotControlParameters',
+	'RNASuiteDegsDistPlotControlParameters'
 ]
 
 class RNASuiteParameter(dict):
@@ -11,13 +12,8 @@ class RNASuiteParameter(dict):
 		self.update(kwargs)
 		self['expose'] = expose
 		self['default'] = default
-
-		if kwargs['type'] == 'list':
-			self['index'] = index
-			self['options'] = options
-
-		elif kwargs['type'] == 'select':
-			self['options'] = options
+		self['index'] = index
+		self['options'] = options
 
 	def __getattr__(self, key):
 		return self[key]
@@ -216,49 +212,12 @@ RNASuiteShowDEGParameters = RNASuiteParameters(
 	)
 )
 
-RNASuiteDEGDistPlotParameters = RNASuiteParameters(
-	AttrDict(
+RNASuiteDegsDistPlotParameters = RNASuiteParameters(
+	RNASuiteParameter(
 		key = 'contrasts',
 		type = 'contrast',
 		default = None,
 		display = 'Contrasts:'
-	),
-	AttrDict(
-		key = 'plot',
-		type = 'list',
-		options = [
-			'Stacked bar plot',
-			'Dodged bar plot'
-		],
-		display = "Plot type:",
-		default = None,
-		index = True
-	),
-	AttrDict(
-		key = 'showval',
-		type = 'bool',
-		display = "Show value labels:",
-		default = False
-	),
-	AttrDict(
-		key = 'rotate',
-		type = 'int',
-		range = [0, 90],
-		step = 5,
-		display = "X labels rotate angle:",
-		default = 0
-	),
-	AttrDict(
-		key = 'ucolor',
-		type = 'color',
-		display = "Up-regulated color:",
-		default = '#e41a1c'
-	),
-	AttrDict(
-		key = 'dcolor',
-		type = 'color',
-		display = "Down-regulated color:",
-		default = '#377eb8'
 	)
 )
 
@@ -382,42 +341,100 @@ RNASuiteDEGUpsetPlotParameters = RNASuiteParameters(
 )
 
 RNASuiteDeseqMaPlotControlParameters = RNASuiteParameters(
-	AttrDict(
+	RNASuiteParameter(
 		key = 'main',
 		type = 'str',
 		default = '',
 		display = "Title:"
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'xlab',
 		type = 'str',
 		default = 'mean of normalized counts',
 		display = "X label:"
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'ylim',
-		type = 'int',
+		type = 'limit',
 		range = (-1000, 1000),
 		step = 1,
-		default = 0,
-		display = "X Limits:"
+		default = (0, 0),
+		display = "Y limit:"
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'colNonSig',
 		type = 'color',
-		default = 'gray60',
+		default = '#999999',
 		display = "Non-significant point color:"
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'colSig',
 		type = 'color',
-		default = 'blue',
+		default = '#0000FF',
 		display = "Significant point color:"
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'colLine',
 		type = 'color',
-		default = 'gray40',
+		default = '#666666',
 		display = "Horizontal line color:"
 	),
 )
+
+RNASuiteDegsDistPlotControlParameters = RNASuiteParameters(
+	RNASuiteParameter(
+		key = 'plot_type',
+		type = 'list',
+		options = ['Stacked bar plot', 'Dodged bar plot'],
+		index = True,
+		display = "Plot type:"
+	),
+	RNASuiteParameter(
+		key = 'show_label',
+		type = 'bool',
+		default = False,
+		display = "Show value labels"
+	),
+	RNASuiteParameter(
+		key = 'bar_colors',
+		type = 'colors',
+		default = ('#E74C3C', '#3498DB'),
+		display = "Up and down fill colors:"
+	),
+	RNASuiteParameter(
+		key = 'x_rotate',
+		type = 'int',
+		range = [0, 90],
+		step = 5,
+		display = "X labels rotate angle:"
+	),
+	RNASuiteParameter(
+		key = 'plot_title',
+		type = 'str',
+		display = "Title:"
+	),
+	RNASuiteParameter(
+		key = 'x_label',
+		type = 'str',
+		display = "X label:"
+	),
+	RNASuiteParameter(
+		key = 'y_label',
+		type = 'str',
+		display = "Y label:"
+	),
+	RNASuiteParameter(
+		key = 'legend_title',
+		type = 'str',
+		display = 'Legend title:'
+	),
+	RNASuiteParameter(
+		key = 'theme_name',
+		type = 'list',
+		options = ['bw', 'classic', 'linedraw',
+			'minimal', 'void', 'light', 'grey',
+			'gray', 'dark'
+		]
+	)
+)
+

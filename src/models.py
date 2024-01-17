@@ -85,7 +85,7 @@ class RNASuitePandasModel(QAbstractTableModel):
 		self.endResetModel()
 
 class RNASuiteOutputTreeModel(RNASuitePandasModel):
-	_headers = ['Type', 'Name', '', 'plot']
+	_headers = ['Name', '', 'plot', 'id', 'type']
 
 	def data(self, index, role=Qt.ItemDataRole):
 		if not index.isValid():
@@ -95,13 +95,13 @@ class RNASuiteOutputTreeModel(RNASuitePandasModel):
 		col = index.column()
 
 		if role == Qt.DisplayRole:
-			if col < 2:
+			if col == 0:
 				v = self._data.iloc[row, col]
 				return format_number_display(v)
 
 		elif role == Qt.DecorationRole:
 			if col == 0:
-				v = self._data.iloc[row, 3]
+				v = self._data.iloc[row, 2]
 
 				if v:
 					return QIcon('icons/chart.svg')
@@ -109,11 +109,15 @@ class RNASuiteOutputTreeModel(RNASuitePandasModel):
 				else:
 					return QIcon('icons/table.svg')
 
-			elif col == 2:
-				v = self._data.iloc[row, 2]
+			elif col == 1:
+				v = self._data.iloc[row, 1]
+				p = self._data.iloc[row, 2]
 
-				if v:
+				if v and not p:
 					return QIcon('icons/refresh.svg')
+
+				if v and p:
+					return QIcon('icons/dot.svg')
 
 		return None
 

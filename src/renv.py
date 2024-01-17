@@ -137,15 +137,20 @@ class RNASuiteREnvironment(multiprocessing.Process):
 						if isinstance(ret, pandas.DataFrame):
 							ret = convert_dataframe_to_dict(ret)
 
-						elif isinstance(ret, dict):
-							for k, v in ret.items():
-								if isinstance(v, pandas.DataFrame):
-									ret[k] = convert_dataframe_to_dict(orient='tight')
+						elif isinstance(ret, list):
+							for i in range(len(ret)):
+								if isinstance(ret[i], pandas.DataFrame):
+									ret[i] = convert_dataframe_to_dict(ret[i])
 
-						self.send('result', data['rtype'], ret)
+								else:
+									for j in range(len(ret[i])):
+										if isinstance(ret[i][j], pandas.DataFrame):
+											ret[i][j] = convert_dataframe_to_dict(ret[i][j])
+
+						self.send('result', data=ret)
 
 					case 'eval':
-						rchitect.reval(data['code'])
+						rchitect.rcopy(rchitect.reval(data['code']))
 
 					case 'plot':
 						ret = rchitect.rcopy(rchitect.rcall('hgd_plot', **data['params']))
@@ -163,7 +168,7 @@ class RNASuiteRMessageProcessor(QThread):
 	error = Signal(str)
 	warning = Signal(str)
 	message = Signal(str)
-	results = Signal(str, object)
+	results = Signal(object)
 	running = Signal(bool)
 
 	def __init__(self, parent):
@@ -202,7 +207,7 @@ class RNASuiteRMessageProcessor(QThread):
 					self.plot.emit(data['content'])
 
 				case 'result':
-					self.results.emit(data['content'], data['data'])
+					self.results.emit(data['data'])
 
 				case 'socket':
 					self.socket.emit()
