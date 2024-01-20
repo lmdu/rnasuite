@@ -47,7 +47,6 @@ class RNASuitePlotViewer(QWidget):
 
 		self.manager = QNetworkAccessManager(self)
 		self.manager.finished.connect(self.on_request_finished)
-		self.url = QUrl("http://localhost:{}/plot".format(RNASUITE_PORT))
 
 		self.create_actions()
 
@@ -149,36 +148,51 @@ class RNASuitePlotViewer(QWidget):
 	def save_plot_file(self):
 		pass
 
-	def remove_plot(self, plot_id):
-		self.parent.pyconn.send({
-			'action': 'call',
-			'func': 'hgd_remove',
-			'params': {'page': plot_id+1}
-		})
+	def remove_plot(self, static_id):
+		#return static_id
+		url = QUrl("http://localhost:{}/remove".format(RNASUITE_PORT))
+		query = QUrlQuery()
+		query.addQueryItem('token', RNASUITE_TOKEN)
+		query.addQueryItem('id', str(static_id))
+		url.setQuery(query)
+		request = QNetworkRequest()
+		request.setUrl(url)
+		self.manager.get(request)
 
-	def show_plot(self, plot_id):
-		self.plot_id = plot_id
-		self.redraw_plot()
+		#self.parent.pyconn.send({
+		#	'action': 'remove',
+		#	'params': {'page': plot_id+1}
+		#})
+
+	def show_plot(self, static_id):
+		self.redraw_plot(static_id=static_id)
 
 	def get_plot(self, **kwargs):
-		#kwargs['token'] = HTTPGD_TOKEN
-		kwargs['renderer'] = 'svgp'
-		#query = '&'.join('{}={}'.format(k, v) for k, v in kwargs.items())
-		#self.url.setQuery(query)
-		#request = QNetworkRequest()
-		#request.setUrl(self.url)
-		#self.manager.get(request)
-		self.parent.pyconn.send({
-			'action': 'plot',
-			'params': kwargs
-		})
+		url = QUrl("http://localhost:{}/plot".format(RNASUITE_PORT))
+		query = QUrlQuery()
+		query.addQueryItem('token', RNASUITE_TOKEN)
+		query.addQueryItem('renderer', 'svgp')
+
+		for k, v in kwargs.items():
+			query.addQueryItem(k, str(v))
+
+		url.setQuery(query)
+		request = QNetworkRequest()
+		request.setUrl(url)
+		self.manager.get(request)
+
+		#kwargs['renderer'] = 'svgp'
+		#self.parent.pyconn.send({
+		#	'action': 'plot',
+		#	'params': kwargs
+		#})
 
 	@Slot()
 	def on_error_occurred(self, error):
 		self.error.emit(str(error))
 
 	@Slot()
-	def redraw_plot(self):
+	def redraw_plot(self, index=None, static_id=None):
 		if not self.plot_num:
 			return
 
@@ -186,13 +200,22 @@ class RNASuitePlotViewer(QWidget):
 		width = int(size.width() * 0.95)
 		height = int(size.height() * 0.95)
 
-		self.get_plot(
-			#id = self.plot_id,
-			page = self.plot_id + 1,
-			zoom = self.plot_zoom,
-			width = width,
-			height = height
-		)
+		if static_id is not None:
+			self.get_plot(
+				id = static_id,
+				#page = self.plot_id + 1,
+				zoom = self.plot_zoom,
+				width = width,
+				height = height
+			)
+
+		elif index is not None:
+			self.get_plot(
+				index = index,
+				zoom = self.plot_zoom,
+				width = width,
+				height = height
+			)
 
 		self.plot_label.setText("{} / {}".format(self.plot_id+1, self.plot_num))
 
@@ -200,10 +223,13 @@ class RNASuitePlotViewer(QWidget):
 	def on_text_received(self, text):
 		data = json.loads(text)
 
-		if data['hsize'] > self.plot_num:
-			self.plot_num = data['hsize']
-			self.plot_id = self.plot_num - 1
-			self.redraw_plot()
+		#if data['hsize'] > self.plot_num:
+		#	self.plot_num = data['hsize']
+		#	last_id = self.plot_num - 1
+
+		#	print(last_id)
+		self.plot_num = data['hsize']
+		self.redraw_plot(index=-1)
 
 	@Slot()
 	def update_image(self, svg):
@@ -214,6 +240,9 @@ class RNASuitePlotViewer(QWidget):
 
 	@Slot()
 	def on_request_finished(self, reply):
+		if reply.url().path() == '/remove':
+			return
+
 		if reply.error() == QNetworkReply.NoError:
 			data = reply.readAll()
 			self.update_image(data)
@@ -243,7 +272,6 @@ class RNASuitePlotControlPanel(QWidget):
 	def _on_update_clicked(self):
 		self.parent.pyconn.send({
 			'action': 'call',
-			'rtype': 'plot',
 			'func': self.function,
 			'params': self.get_param_values()
 		})
@@ -252,9 +280,12 @@ class RNASuitePlotControlPanel(QWidget):
 		self.title_label = QLabel("<b>{}</b>".format(self.plotname), self)
 		self.param_widgets = RNASuiteAccordionWidget(self)
 		self.update_button = QPushButton(self)
-		self.update_button.setText('Update plot')
+		self.update_button.setText('Update Plot')
 		self.update_button.setIcon(QIcon('icons/update.svg'))
 		self.update_button.clicked.connect(self._on_update_clicked)
+		self.reset_button = QPushButton(self)
+		self.reset_button.setText('Restore Defaults')
+		self.reset_button.clicked.connect(self.restore_widgets)
 
 	def set_layouts(self):
 		self.main_layout = QVBoxLayout(self)
@@ -262,6 +293,7 @@ class RNASuitePlotControlPanel(QWidget):
 		self.main_layout.addWidget(self.param_widgets)
 		#self.main_layout.addLayout(self.widget_layout)
 		self.main_layout.addWidget(self.update_button)
+		self.main_layout.addWidget(self.reset_button)
 		self.main_layout.addStretch()
 
 	def register_widgets(self):
@@ -346,7 +378,7 @@ class RNASuiteDegsDistPlotControlPanel(RNASuitePlotControlPanel):
 			'Title and labels': ['plot_title', 'x_label', 'x_rotate', 'y_label', 'show_label'],
 			'Legend': ['legend_title'],
 			'Fill colors': ['bar_colors'],
-			'Theme': ['theme_name']
+			'Theme': ['theme_name', 'base_size']
 		}
 
 class RNASuitePlotStackedWidget(QStackedWidget):
@@ -369,8 +401,13 @@ class RNASuitePlotStackedWidget(QStackedWidget):
 		index = self.addWidget(panel_widget)
 		self.panel_mapping[panel] = index
 
+		return index
+
 	def show_panel(self, panel):
 		if panel in self.panel_mapping:
-			self.setCurrentIndex(self.panel_mapping[panel])
+			index = self.panel_mapping[panel]
+
 		else:
-			self.add_panel(panel)
+			index = self.add_panel(panel)
+
+		self.setCurrentIndex(index)

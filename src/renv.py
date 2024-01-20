@@ -1,11 +1,12 @@
 import os
+import time
 import functools
 import traceback
 import multiprocessing
 
 import pandas
 import rchitect
-from rchitect.interface import set_hook, package_event
+from rchitect.interface import set_hook, package_event, peek_event, process_events, polled_events
 
 from PySide6.QtCore import *
 
@@ -84,6 +85,7 @@ class RNASuiteREnvironment(multiprocessing.Process):
 				token = self.token
 			)
 			self.send('socket')
+
 		except Exception:
 			self.send('error', "Failed to start httpgd:\n{}".format(traceback.format_exc()))
 
@@ -107,9 +109,20 @@ class RNASuiteREnvironment(multiprocessing.Process):
 
 		while True:
 			try:
-				data = self.rconn.recv()
+				if self.rconn.poll():
+					data = self.rconn.recv()
 
-			except EOFError:
+				else:
+					if peek_event():
+						process_events()
+
+					else:
+						polled_events()
+
+					time.sleep(0.01)
+					continue
+
+			except (EOFError, BrokenPipeError):
 				break
 
 			try:
@@ -150,11 +163,14 @@ class RNASuiteREnvironment(multiprocessing.Process):
 						self.send('result', data=ret)
 
 					case 'eval':
-						rchitect.rcopy(rchitect.reval(data['code']))
+						rchitect.reval(data['code'])
 
 					case 'plot':
 						ret = rchitect.rcopy(rchitect.rcall('hgd_plot', **data['params']))
 						self.send('plot', ret)
+
+					case 'remove':
+						rchitect.rcall('hgd_remove', **data['params'])
 
 			except:
 				self.send('error', traceback.format_exc())
@@ -176,6 +192,7 @@ class RNASuiteRMessageProcessor(QThread):
 		self.parent = parent
 
 	def data_transfrom(self, data):
+		
 		if isinstance(data, dict):
 			#if 'index_names' in data and 'column_names' in data:
 			return pandas.DataFrame.from_dict(data, orient='tight')

@@ -382,9 +382,9 @@ class RNASuiteOutputTreeWidget(QTreeView):
 
 	def add_row(self, **row):
 		if (self._data['name'].eq(row['name'])).any():
-			index = self._data[(self._data['name'] == row['name'])].index
-			self._data.iloc[index, 1] = 1
-			data_id = int(self._data.iloc[index, 3])
+			row_num = self._data[(self._data['name'] == row['name'])].index[0]
+			self._data.iloc[row_num, 1] = 1
+			data_id = self._data.iloc[row_num, 3]
 
 			if row['plot']:
 				row['data'] = int(row['data'])
@@ -392,8 +392,9 @@ class RNASuiteOutputTreeWidget(QTreeView):
 					self.remove_plot.emit(data_id)
 
 				self._data.loc[self._data['plot'] == 1, 'update'] = 0
-				self._data.iloc[index, 3] = row['data']
-				self._data.iloc[index, 1] = 1
+				self._data.iloc[row_num, 3] = row['data']
+				self._data.iloc[row_num, 1] = 1
+
 
 			else:
 				self.datasets[data_id] = pandas.DataFrame.from_dict(row['data'], orient='tight')
@@ -403,6 +404,7 @@ class RNASuiteOutputTreeWidget(QTreeView):
 
 			if row['plot']:
 				data_id = int(data)
+				self._data.loc[self._data['plot'] == 1, 'update'] = 0
 
 			else:
 				self.table_id += 1

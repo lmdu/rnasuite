@@ -393,7 +393,7 @@ RNASuiteDegsDistPlotControlParameters = RNASuiteParameters(
 		key = 'show_label',
 		type = 'bool',
 		default = False,
-		display = "Show value labels"
+		display = "Show value labels:"
 	),
 	RNASuiteParameter(
 		key = 'bar_colors',
@@ -421,12 +421,14 @@ RNASuiteDegsDistPlotControlParameters = RNASuiteParameters(
 	RNASuiteParameter(
 		key = 'y_label',
 		type = 'str',
-		display = "Y label:"
+		display = "Y label:",
+		default = "Counts"
 	),
 	RNASuiteParameter(
 		key = 'legend_title',
 		type = 'str',
-		display = 'Legend title:'
+		display = 'Legend title:',
+		default = 'DEGs'
 	),
 	RNASuiteParameter(
 		key = 'theme_name',
@@ -434,7 +436,16 @@ RNASuiteDegsDistPlotControlParameters = RNASuiteParameters(
 		options = ['bw', 'classic', 'linedraw',
 			'minimal', 'void', 'light', 'grey',
 			'gray', 'dark'
-		]
+		],
+		display = 'Plot theme:'
+	),
+	RNASuiteParameter(
+		key = 'base_size',
+		type = 'int',
+		range = (1, 100),
+		step = 1,
+		default = 11,
+		display = 'Base size:'
 	)
 )
 

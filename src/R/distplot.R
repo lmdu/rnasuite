@@ -34,7 +34,7 @@ edger_degs_count <- function() {
 }
 
 rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_colors=c('#E74C3C', '#3498DB'), x_rotate=0, plot_title=NULL,
-	x_label=NULL, y_label='Counts', theme_name='bw', legend_title='DEGs') {
+	x_label=NULL, y_label='Counts', theme_name='bw', legend_title='DEGs', base_size=11) {
 	counts <- distplot_data
 
 	if (plot_type == 0) {
@@ -44,7 +44,7 @@ rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_co
 			scale_y_continuous(labels = abs)
 
 		if (show_label) {
-			p <- p + geom_text(aes(label=abs(value), hjust=0.5, vjust=ifelse(value < 0, 1.3, -0.3)))
+			p <- p + geom_text(aes(label=abs(value), hjust=0.5, vjust=ifelse(value < 0, 1.3, -0.3)), size=base_size)
 		}
 	} else {
 		counts$value <- as.numeric(counts$value)
@@ -52,7 +52,7 @@ rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_co
 			geom_bar(position='dodge', stat='identity')
 
 		if (show_label) {
-			p <- p + geom_text(aes(label=value), position=position_dodge(width=0.9), vjust=-0.3)
+			p <- p + geom_text(aes(label=value), position=position_dodge(width=0.9), vjust=-0.3, size=base_size)
 		}
 	}
 
@@ -83,14 +83,16 @@ rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_co
 		'dark' = theme_dark
 	)
 
-	p <- p + theme_func()
+	p <- p + theme_func(base_size=base_size)
 
 	if (x_rotate) {
 		p <- p + theme(axis.text.x=element_text(angle = x_rotate, hjust=1))
 	}
 
 	show(p)
-	return(as.integer(hgd_id()$id))
+	plot_id <-as.integer(hgd_id()$id)
+	out <- list(c(1, "DEGs dist plot", plot_id, 'deg_distplot'))
+	return(out)
 }
 
 rnasuite_degs_dist_plot_run <- function(tool, fdr, logfc, compare, contrasts) {

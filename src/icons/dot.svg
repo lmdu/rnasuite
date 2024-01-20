@@ -1,1 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-filled" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 3.34a10 10 0 1 1 -4.995 8.984l-.005 -.324l.005 -.324a10 10 0 0 1 4.995 -8.336z" stroke-width="0" fill="currentColor" /></svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 26.2.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="图层_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 24 24" style="enable-background:new 0 0 24 24;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:none;}
+	.st1{fill:#3498DB;stroke:#000000;stroke-miterlimit:10;}
+</style>
+<path class="st0" d="M0,0h24v24H0V0z"/>
+<path class="st1" d="M9.5,7.7c2.4-1.4,5.4-0.6,6.8,1.8s0.6,5.4-1.8,6.8s-5.4,0.6-6.8-1.8C7.3,13.8,7,13,7,12.2V12v-0.2
+	C7.1,10.1,8,8.5,9.5,7.7z"/>
+</svg>

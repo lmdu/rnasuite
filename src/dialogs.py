@@ -278,6 +278,7 @@ class RNASuiteParameterDialog(QDialog):
 			self.widgets[p.key] = create_parameter_widget(p)
 			set_parameter_widget_value(self.widgets[p.key], val, p.index)
 			self.widget_layout.addRow(p.display, self.widgets[p.key])
+			
 
 	def register_events(self):
 		pass

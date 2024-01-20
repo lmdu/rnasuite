@@ -388,7 +388,6 @@ class RNASuiteMainWindow(QMainWindow):
 
 		if not file.endswith(('.csv', '.tsv', '.xls', '.xlsx')):
 			delimiter = RNASuiteColumnSeparatorDialog.get_delimiter(self)
-			print(delimiter)
 
 		match reader:
 			case 'read_count':
