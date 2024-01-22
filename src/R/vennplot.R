@@ -7,37 +7,39 @@
 
 library(ggvenn)
 
-get_degs_from_deseq <- function() {
+get_degs_from_deseq <- function(fdr, logfc, degtype, compare, contrasts) {
 	degs <- list()
 
-	for (contrast in vennplot_contrasts) {
-		deseq_contrast[2:3] <<- contrast
-		deseq_extract_degs()
-		sig_degs <- deseq_sig_degs()
+	for (contrast in contrasts) {
+		comparison <- c(compare, contrast)
+		deseq_extract_degs(fdr, logfc, comparison)
+		sig_degs <- deseq_sig_degs(fdr, logfc)
 		label <- paste(contrast, collapse=' vs ')
 
-		if (vennplot_degtype == 1) {
-			degs[[ label ]] = rownames(sig_degs[sig_degs$log2FoldChange>=deseq_logfc & sig_degs$padj<deseq_fdr, ])
-		} else if (vennplot_degtype == 2) {
-			degs[[ label ]] = rownames(sig_degs[sig_degs$log2FoldChange<=-deseq_logfc & sig_degs$padj<deseq_fdr, ])
+		if (degtype == 1) {
+			degs[[ label ]] = rownames(sig_degs[sig_degs$log2FoldChange>=logfc & sig_degs$padj<fdr, ])
+		} else if (degtype == 2) {
+			degs[[ label ]] = rownames(sig_degs[sig_degs$log2FoldChange<=-logfc & sig_degs$padj<fdr, ])
 		} else {
-			degs[[ label ]] = rownames(sig_degs[abs(sig_degs$log2FoldChange)>=deseq_logfc & sig_degs$padj<deseq_fdr, ])
+			degs[[ label ]] = rownames(sig_degs[abs(sig_degs$log2FoldChange)>=logfc & sig_degs$padj<fdr, ])
 		}
 	}
 
 	return(degs)
 }
 
-degs_venn_plot <- function() {
-	if (vennplot_tool == 'deseq') {
-		data <- get_degs_from_deseq()
+rnasuite_degs_venn_plot_update <- function(fill_color=c('#E74C3C', '#3498DB', '#2ECC71', '#F1C40F'), ...) {
+	p <- ggvenn(vennplot_data, fill_color = fill_color, ...)
+	show(p)
+	plot_id <- as.integer(hgd_id()$id)
+	out <- list(c(1, "DEGs venn plot", plot_id, 'deg_vennplot'))
+	return(out)
+}
+
+rnasuite_degs_venn_plot_run <- function(tool, fdr, logfc, degtype, compare, contrasts) {
+	if (tool == 'deseq') {
+		vennplot_data <<- get_degs_from_deseq(fdr, logfc, degtype, compare, contrasts)
 	}
 
-	p <- ggvenn(data, digits = 2,
-		fill_color = vennplot_colors,
-		fill_alpha = vennplot_opacity,
-		show_percentage = vennplot_percent
-	)
-
-	show(p)
+	rnasuite_degs_venn_plot_update()
 }

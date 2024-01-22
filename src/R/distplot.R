@@ -44,7 +44,7 @@ rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_co
 			scale_y_continuous(labels = abs)
 
 		if (show_label) {
-			p <- p + geom_text(aes(label=abs(value), hjust=0.5, vjust=ifelse(value < 0, 1.3, -0.3)), size=base_size)
+			p <- p + geom_text(aes(label=abs(value), hjust=0.5, vjust=ifelse(value < 0, 1.3, -0.3)), size=base_size/3)
 		}
 	} else {
 		counts$value <- as.numeric(counts$value)
@@ -52,7 +52,7 @@ rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_co
 			geom_bar(position='dodge', stat='identity')
 
 		if (show_label) {
-			p <- p + geom_text(aes(label=value), position=position_dodge(width=0.9), vjust=-0.3, size=base_size)
+			p <- p + geom_text(aes(label=value), position=position_dodge(width=0.9), vjust=-0.3, size=base_size/3)
 		}
 	}
 
@@ -90,7 +90,7 @@ rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_co
 	}
 
 	show(p)
-	plot_id <-as.integer(hgd_id()$id)
+	plot_id <- as.integer(hgd_id()$id)
 	out <- list(c(1, "DEGs dist plot", plot_id, 'deg_distplot'))
 	return(out)
 }

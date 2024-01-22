@@ -9,9 +9,9 @@ from utils import *
 
 __all__ = ['RNASuiteEdgerIdentifyWorker', 'RNASuiteDeseqIdentifyWorker',
 	'RNASuiteDeseqExtractWorker', 'RNASuiteEdgerExtractWorker',
-	'RNASuiteDegsDistPlotWorker',
-	'RNASuiteDEGVolcanoPlotWorker', 'RNASuiteDEGVennPlotWorker',
-	'RNASuiteDEGUpsetPlotWorker'
+	'RNASuiteDegsDistPlotWorker', 'RNASuiteDegsVennPlotWorker',
+	'RNASuiteDEGVolcanoPlotWorker',
+	'RNASuiteDEGUpsetPlotWorker',
 ]
 
 class RNASuiteBaseWorker(QThread):
@@ -105,28 +105,9 @@ class RNASuiteDEGVolcanoPlotWorker(RNASuiteBaseWorker):
 			'func': 'degs_volcano_plot'
 		})
 
-class RNASuiteDEGVennPlotWorker(RNASuiteBaseWorker):
+class RNASuiteDegsVennPlotWorker(RNASuiteBaseWorker):
 	script = 'R/vennplot.R'
-	rettype = 'plot'
-	function = 'rnasuite_degs_venn_plot'
-
-	@property
-	def data(self):
-		return {
-			'vennplot_tool': self.params['tool'],
-			'vennplot_contrasts': self.params['contrasts'],
-			'vennplot_percent': self.params['percent'],
-			'vennplot_colors': self.params['colors'],
-			'vennplot_opacity': self.params['opacity'],
-			'vennplot_degtype': self.params['degtype']
-		}
-
-	def run(self):
-		self.submit({
-			'action': 'call',
-			'rtype': 'plot',
-			'func': 'degs_venn_plot'
-		})
+	function = 'rnasuite_degs_venn_plot_run'
 
 class RNASuiteDEGUpsetPlotWorker(RNASuiteBaseWorker):
 	script = 'R/upsetplot.R'

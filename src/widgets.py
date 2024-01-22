@@ -214,6 +214,9 @@ class RNASuiteAccordionItem(QWidget):
 
 		self.set_layouts()
 
+	def sizeHint(self):
+		return QSize(100, 10)
+
 	def set_layouts(self):
 		self.main_layout = QVBoxLayout()
 		self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -227,21 +230,36 @@ class RNASuiteAccordionItem(QWidget):
 
 	def add_widgets(self, widgets):
 		for label, widget in widgets:
-			self.content_layout.addWidget(label)
+			if label:
+				self.content_layout.addWidget(label)
+
 			self.content_layout.addWidget(widget)
 
-class RNASuiteAccordionWidget(QWidget):
+class RNASuiteAccordionWidget(QScrollArea):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
+		self.setFrameStyle(QFrame.NoFrame)
+		#self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+		self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		self.setWidgetResizable(True)
+
+		self.main_widget = QWidget(self)
 		self.main_layout = QVBoxLayout()
-		self.main_layout.setContentsMargins(0, 0, 0, 0)
-		self.setLayout(self.main_layout)
+		self.main_layout.setContentsMargins(0, 0, 2, 0)
+		self.main_widget.setLayout(self.main_layout)
+		self.setWidget(self.main_widget)
+
+	def sizeHint(self):
+		return QSize(100, 10)
 
 	def add_accordions(self, title, widgets):
 		accordion = RNASuiteAccordionItem(self, title)
 		accordion.add_widgets(widgets)
 		self.main_layout.addWidget(accordion)
+
+	def add_stretcher(self):
+		self.main_layout.addStretch()
 
 class RNASuiteInputListItem(QWidget):
 	def __init__(self, parent=None, title=None, content=None, meta=None):
@@ -1208,7 +1226,15 @@ class RNASuiteColorGroups(QWidget):
 
 		self.color_counts = count
 
+	def clear_colors(self):
+		for i in range(self.color_counts):
+			self.remove_color_button()
+
+		self.color_counts = 0
+
 	def set_colors(self, colors):
+		self.clear_colors()
+
 		for color in colors:
 			widget = self.add_color_button()
 			widget.set_color(color)

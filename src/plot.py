@@ -80,7 +80,7 @@ class RNASuitePlotViewer(QWidget):
 				self.tool.addAction(action)
 
 	def resizeEvent(self, event):
-		self.redraw_plot()
+		self.redraw_plot(index=-1)
 
 	@Slot()
 	def on_connected(self):
@@ -289,8 +289,9 @@ class RNASuitePlotControlPanel(QWidget):
 
 	def set_layouts(self):
 		self.main_layout = QVBoxLayout(self)
+		self.main_layout.setContentsMargins(3, 5, 0, 5)
 		self.main_layout.addWidget(self.title_label)
-		self.main_layout.addWidget(self.param_widgets)
+		self.main_layout.addWidget(self.param_widgets, 1)
 		#self.main_layout.addLayout(self.widget_layout)
 		self.main_layout.addWidget(self.update_button)
 		self.main_layout.addWidget(self.reset_button)
@@ -318,10 +319,18 @@ class RNASuitePlotControlPanel(QWidget):
 			widgets = []
 			for k in keys:
 				p = self.parameters[k]
-				label = QLabel(p.display)
+
+				if p.type == 'bool':
+					self.widgets[k].setText(p.display.rstrip(':'))
+					label = None
+				else:
+					label = QLabel(p.display)
+
 				widgets.append((label, self.widgets[k]))
 
 			self.param_widgets.add_accordions(group, widgets)
+
+		self.param_widgets.add_stretcher()
 
 	def register_events(self):
 		pass
@@ -381,11 +390,36 @@ class RNASuiteDegsDistPlotControlPanel(RNASuitePlotControlPanel):
 			'Theme': ['theme_name', 'base_size']
 		}
 
+class RNASuiteDegsVennPlotControlPanel(RNASuitePlotControlPanel):
+	parameters = RNASuiteDegsVennPlotControlParameters
+	function = 'rnasuite_degs_venn_plot_update'
+	plotname = 'DEGs Venn Plot'
+
+	@property
+	def groups(self):
+		return {
+			'Show percent': ['show_percentage', 'digits'],
+			'Fill colors': ['fill_color', 'fill_alpha'],
+			'Stroke style': ['stroke_color', 'stroke_alpha', 'stroke_size', 'stroke_linetype'],
+			'Set name style': ['set_name_color', 'set_name_size'],
+			'Text style': ['text_color', 'text_size']
+		}
+
 class RNASuitePlotStackedWidget(QStackedWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.parent = parent
 		self.panel_mapping = {}
+
+		self.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
+		#self.setStyleSheet("background-color: white;")
+
+		#self.panel_stacks = QStackedWidget(self)
+		#self.setWidget(self.panel_stacks)
+
+		#self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+		#self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		#self.setWidgetResizable(True)
 
 	def sizeHint(self):
 		return QSize(200, 10)
@@ -397,6 +431,9 @@ class RNASuitePlotStackedWidget(QStackedWidget):
 
 			case 'deg_distplot':
 				panel_widget = RNASuiteDegsDistPlotControlPanel(self.parent)
+
+			case 'deg_vennplot':
+				panel_widget = RNASuiteDegsVennPlotControlPanel(self.parent)
 
 		index = self.addWidget(panel_widget)
 		self.panel_mapping[panel] = index

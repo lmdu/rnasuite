@@ -37,7 +37,7 @@ class RNASuiteREnvironment(multiprocessing.Process):
 
 	def set_hooks(self):
 		hooks = {
-			'DESeq2': 'deseq.R'
+			'base': 'rnasuite.R'
 		}
 
 		for package, script in hooks.items():

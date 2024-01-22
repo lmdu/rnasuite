@@ -4,34 +4,30 @@
 
 library(UpSetR)
 
-get_degs_from_deseq <- function() {
+get_degs_from_deseq <- function(fdr, logfc, degtype, compare, contrasts) {
 	degs <- list()
 
-	for (contrast in upsetplot_contrasts) {
-		deseq_contrast[2:3] <<- contrast
-		deseq_extract_degs()
-		sig_degs <- deseq_sig_degs()
+	for (contrast in contrasts) {
+		comparison <- c(compare, contrast)
+		deseq_extract_degs(fdr, logfc, comparison)
+		sig_degs <- deseq_sig_degs(fdr, logfc)
 		label <- paste(contrast, collapse=' vs ')
 
-		if (upsetplot_degtype == 1) {
-			degs[[ label ]] = rownames(sig_degs[sig_degs$log2FoldChange>=deseq_logfc & sig_degs$padj<deseq_fdr, ])
-		} else if (upsetplot_degtype == 2) {
-			degs[[ label ]] = rownames(sig_degs[sig_degs$log2FoldChange<=-deseq_logfc & sig_degs$padj<deseq_fdr, ])
+		if (degtype == 1) {
+			degs[[ label ]] = rownames(sig_degs[sig_degs$log2FoldChange>=logfc & sig_degs$padj<fdr, ])
+		} else if (degtype == 2) {
+			degs[[ label ]] = rownames(sig_degs[sig_degs$log2FoldChange<=-logfc & sig_degs$padj<fdr, ])
 		} else {
-			degs[[ label ]] = rownames(sig_degs[abs(sig_degs$log2FoldChange)>=deseq_logfc & sig_degs$padj<deseq_fdr, ])
+			degs[[ label ]] = rownames(sig_degs[abs(sig_degs$log2FoldChange)>=logfc & sig_degs$padj<fdr, ])
 		}
 	}
 
 	return(degs)
 }
 
-degs_upset_plot <- function() {
-	if (upsetplot_tool == 'deseq') {
-		data <- get_degs_from_deseq()
-	}
-
-	p <- upset(fromList(data),
-		nsets = length(data),
+rnasuite_degs_upset_plot_update <- function() {
+	p <- upset(fromList(upsetplot_data),
+		nsets = length(upsetplot_data),
 		nintersects = 100,
 		order.by = 'freq',
 		point.size = 2.5,
@@ -40,4 +36,12 @@ degs_upset_plot <- function() {
 	)
 
 	show(p)
+}
+
+rnasuite_degs_upset_plot_run <- function(tool, ...) {
+	if (tool == 'deseq') {
+		upsetplot_data <- get_degs_from_deseq(...)
+	}
+
+	rnasuite_degs_upset_plot_update()	
 }

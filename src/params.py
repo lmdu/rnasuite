@@ -1,10 +1,17 @@
 from utils import *
 
-__all__ = ['RNASuiteDeseqParameters', 'RNASuiteShowDEGParameters',
-	'RNASuiteEdgerParameters', 'RNASuiteDegsDistPlotParameters',
-	'RNASuiteDEGVolcanoPlotParameters', 'RNASuiteDEGVennPlotParameters',
-	'RNASuiteDEGUpsetPlotParameters', 'RNASuiteDeseqMaPlotControlParameters',
-	'RNASuiteDegsDistPlotControlParameters'
+__all__ = [
+	'RNASuiteDeseqParameters',
+	'RNASuiteShowDEGParameters',
+	'RNASuiteEdgerParameters',
+	'RNASuiteDegsDistPlotParameters',
+	'RNASuiteDegsDistPlotControlParameters',
+	'RNASuiteDegsVennPlotParameters',
+	'RNASuiteDegsVennPlotControlParameters',
+	'RNASuiteDegsUpsetPlotParameters',
+	'RNASuiteDegsUpsetPlotControlParamters',
+	'RNASuiteDEGVolcanoPlotParameters',
+	'RNASuiteDeseqMaPlotControlParameters',
 ]
 
 class RNASuiteParameter(dict):
@@ -286,34 +293,14 @@ RNASuiteDEGVolcanoPlotParameters = RNASuiteParameters(
 	)
 )
 
-RNASuiteDEGVennPlotParameters = RNASuiteParameters(
-	AttrDict(
+RNASuiteDegsVennPlotParameters = RNASuiteParameters(
+	RNASuiteParameter(
 		key = 'contrasts',
 		type = 'contrast',
 		default = None,
 		display = 'Contrasts:'
 	),
-	AttrDict(
-		key = 'colors',
-		type = 'colors',
-		default = None,
-		display = 'Contrast colors:'
-	),
-	AttrDict(
-		key = 'opacity',
-		type = 'float',
-		range = (0, 1),
-		step = 0.1,
-		default = 0.5,
-		display = "Color opacity:"
-	),
-	AttrDict(
-		key = 'percent',
-		type = 'bool',
-		display = "Show percent values:",
-		default = False
-	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'degtype',
 		type = 'list',
 		display = "DEG Type:",
@@ -323,7 +310,7 @@ RNASuiteDEGVennPlotParameters = RNASuiteParameters(
 	)
 )
 
-RNASuiteDEGUpsetPlotParameters = RNASuiteParameters(
+RNASuiteDegsUpsetPlotParameters = RNASuiteParameters(
 	AttrDict(
 		key = 'contrasts',
 		type = 'contrast',
@@ -449,3 +436,93 @@ RNASuiteDegsDistPlotControlParameters = RNASuiteParameters(
 	)
 )
 
+RNASuiteDegsVennPlotControlParameters = RNASuiteParameters(
+	RNASuiteParameter(
+		key = 'show_percentage',
+		type = 'bool',
+		display = "Show percent values:",
+		default = True
+	),
+	RNASuiteParameter(
+		key = 'digits',
+		type = 'int',
+		range = (0, 5),
+		step = 1,
+		default = 1,
+		display = 'Decimal digits:'
+	),
+	RNASuiteParameter(
+		key = 'fill_color',
+		type = 'colors',
+		default = ['#E74C3C', '#3498DB', '#2ECC71', '#F1C40F'],
+		display = 'Fill colors:'
+	),
+	RNASuiteParameter(
+		key = 'fill_alpha',
+		type = 'float',
+		range = (0, 1),
+		step = 0.1,
+		default = 0.5,
+		display = "Fill alpha:"
+	),
+	RNASuiteParameter(
+		key = 'stroke_color',
+		type = 'color',
+		display = "Storke color:",
+		default = '#000000'
+	),
+	RNASuiteParameter(
+		key = 'stroke_alpha',
+		type = 'float',
+		range = (0, 1),
+		step = 0.1,
+		default = 1,
+		display = "Storke alpha:"
+	),
+	RNASuiteParameter(
+		key = 'stroke_size',
+		type = 'int',
+		range = (1, 100),
+		step = 1,
+		default = 1,
+		display = "Storke size:"
+	),
+	RNASuiteParameter(
+		key = 'stroke_linetype',
+		type = 'list',
+		options = ['solid', 'dashed', 'dotted', 'dotdash', 'longdash', 'twodash'],
+		display = "Storke line type:"
+	),
+	RNASuiteParameter(
+		key = 'set_name_color',
+		type = 'color',
+		default = '#000000',
+		display = "Set name color:"
+	),
+	RNASuiteParameter(
+		key = 'set_name_size',
+		type = 'int',
+		range = (1, 100),
+		step = 1,
+		default = 6,
+		display = "Set name size:"
+	),
+	RNASuiteParameter(
+		key = 'text_color',
+		type = 'color',
+		default = '#000000',
+		display = "Label color:"
+	),
+	RNASuiteParameter(
+		key = 'text_size',
+		type = 'int',
+		range = (1, 100),
+		step = 1,
+		default = 4,
+		display = "Label size:"
+	)
+)
+
+RNASuiteDegsUpsetPlotControlParamters = RNASuiteParameters(
+
+)
