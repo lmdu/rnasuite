@@ -1,11 +1,11 @@
-#@volcanoplot_tool str, tools used to identify DEGs, edger or deseq
-#@volcanoplot_top str, number of top significant genes to show
-#@volcanoplot_colors list, not significant, up-regulated and down-regulated degs
-#@volcanoplot_line bool, show threshold dashed lines or not
-#@volcanoplot_gname, show gene names from, 0 from gene id column, 1 from gene annotation
-#@volcanoplot_gnsep, the separator used in gene id column
-#@volcanoplot_gncol, the column used to show in plot
-#@volcanoplot_limit, the x limit for log2 fold change
+#@param tool str, tools used to identify DEGs, edger or deseq
+#@param top str, number of top significant genes to show
+#@param colors list, not significant, up-regulated and down-regulated degs
+#@param line bool, show threshold dashed lines or not
+#@param gname, show gene names from, 0 from gene id column, 1 from gene annotation
+#@param gnsep, the separator used in gene id column
+#@param gncol, the column used to show in plot
+#@param limit, the x limit for log2 fold change
 
 library(ggplot2)
 library(ggrepel)
@@ -97,8 +97,6 @@ rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, fdr
 	rnasuite_put_plot(id, plot_id, p, data)
 	out <- list(c(1, name, plot_id, 'deg_distplot'))
 	return(out)
-
-	
 }
 
 rnasuite_degs_volcano_plot_show <- function(id) {

@@ -24,24 +24,24 @@ deseq_identify_degs <- function(read_counts, sample_info, design_formula) {
 		design = as.formula(design_formula)
 	)
 
-	deseq_results <<- DESeq(dds)
+	RNASUITE_DESEQ_RESULTS <<- DESeq(dds)
 }
 
-deseq_extract_degs <- function(fdr, logfc, contrast) {
-	deseq_degs <<- results(deseq_results,
+deseq_extract_degs <- function(contrast) {
+	fdr <- RNASUITE_FDR
+	logfc <- RNASUITE_LOGFC
+	degs <- results(RNASUITE_DESEQ_RESULTS,
 		alpha = fdr,
 		lfcThreshold = logfc,
 		contrast = contrast
 	)
+	return(degs)
 }
 
-deseq_plot_degs <- function() {
-	plotMA(deseq_degs)
-	return(as.integer(hgd_id()$id))
-}
-
-deseq_sig_degs <- function(fdr, logfc) {
-	sig_degs <- na.omit(deseq_degs)
+deseq_sig_degs <- function(degs) {
+	fdr <- RNASUITE_FDR
+	logfc <- RNASUITE_LOGFC
+	sig_degs <- na.omit(degs)
 	sig_degs <- sig_degs[(sig_degs$padj < fdr & abs(sig_degs$log2FoldChange) >= logfc), ]
 	sig_degs <- sig_degs[order(sig_degs$padj), ]
 	sig_degs <- as.data.frame(sig_degs)
@@ -49,45 +49,70 @@ deseq_sig_degs <- function(fdr, logfc) {
 }
 
 deseq_normalized_counts <- function() {
-	norm_counts <- counts(deseq_results, normalized=TRUE)
+	norm_counts <- counts(RNASUITE_DESEQ_RESULTS, normalized=TRUE)
 	norm_counts <- r_to_py(as.data.frame(norm_counts))
 	return(norm_counts)
 }
 
-deseq_return_degs <- function(fdr, logfc, contrast) {
-	normal_count = deseq_normalized_counts()
-	degs_list = r_to_py(deseq_sig_degs(fdr, logfc))
-	degs_plot = deseq_plot_degs()
-	out <- list(
-		c(0, 'Gene normalized read counts', normal_count, 'table'),
-		c(0, paste(contrast[2], 'vs', contrast[3], 'DEGs'), degs_list, 'table'),
-		c(1, paste(contrast[2], 'vs', contrast[3], 'MAplot'), degs_plot, 'deseq_maplot')
-	)
-	return(out)
-}
-
 rnasuite_deseq_find_degs <- function(counts, samples, fdr, logfc, design, compare, treatment, control, ...) {
+	RNASUITE_FDR <<- fdr
+	RNASUITE_LOGFC <<- logfc
+	RNASUITE_COMPARE <<- compare
+	RNASUITE_TREATMENT <<- treatment
+	RNASUITE_CONTROL <<- control
+
 	contrast <- c(compare, treatment, control)
 	deseq_identify_degs(counts, samples, design)
-	deseq_extract_degs(fdr, logfc, contrast)
-	deseq_return_degs(fdr, logfc, contrast)
-}
+	degs <- deseq_extract_degs(contrast)
+	degs_list = r_to_py(deseq_sig_degs(degs))
+	normal_count = deseq_normalized_counts()
+	plot <- plotMA(degs)
+	pid <- as.integer(hgd_id()$id)
+	name <- paste(treatment, 'vs', control, 'MA plot')
+	rnasuite_put_plot(NULL, pid, name, plot, degs)
 
-rnasuite_deseq_extract_degs <- function(fdr, logfc, compare, treatment, control, ...) {
-	contrast <- c(compare, treatment, control)
-	deseq_extract_degs(fdr, logfc, contrast)
-	degs_list = r_to_py(deseq_sig_degs(fdr, logfc))
-	degs_plot = deseq_plot_degs()
 	out <- list(
-		c(0, paste(treatment, 'vs', control, 'DEGs'), degs_list, 'table'),
-		c(1, paste(treatment, 'vs', control, 'MAplot'), degs_plot, 'deseq_maplot')
+		c(0, 'Gene normalized read counts', normal_count, 'table'),
+		c(0, paste(treatment, 'vs', control, 'DEGs list'), degs_list, 'table'),
+		c(1, name, pid, 'deseq_maplot')
 	)
 	return(out)
 }
 
-rnasuite_deseq_ma_plot_update <- function(treatment, control, ...) {
-	plotMA(deseq_degs, ...)
-	degs_plot = as.integer(hgd_id()$id)
+rnasuite_deseq_extract_degs <- function(compare, treatment, control, ...) {
+	RNASUITE_COMPARE <<- compare
+	RNASUITE_TREATMENT <<- treatment
+	RNASUITE_CONTROL <<- control
+
+	fdr <- RNASUITE_FDR
+	logfc <- RNASUITE_LOGFC
+	contrast <- c(compare, treatment, control)
+	degs <- deseq_extract_degs(contrast)
+	degs_list = r_to_py(deseq_sig_degs(degs))
+	plot <- plotMA(degs)
+	pid <- as.integer(hgd_id()$id)
+	name <- paste(treatment, 'vs', control, 'MA plot'),
+
+	rnasuite_put_plot(NULL, pid, name, plot, degs)
+
+	out <- list(
+		c(0, paste(treatment, 'vs', control, 'DEGs list'), degs_list, 'table'),
+		c(1, name, pid, 'deseq_maplot')
+	)
+	return(out)
+}
+
+rnasuite_deseq_ma_plot_update <- function(id=NULL, ...) {
+	treatment <- RNASUITE_TREATMENT
+	control <- RNASUITE_CONTROL
+
+	name <- rnasuite_get_name(id)
+	data <- rnasuite_get_data(id)
+
+	plot <- plotMA(data, ...)
+	new = as.integer(hgd_id()$id)
+	rnasuite_put_plot(id, new, name, plot, data)
+
 	out <- list(c(1, paste(treatment, 'vs', control, 'MAplot'), degs_plot, 'deseq_maplot'))
 	return(out)
 }

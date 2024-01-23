@@ -29,5 +29,7 @@ rnasuite_put_plot <- function(old, new, name, plot, data=NULL) {
 	}
 }
 
-
+rnasuite_show_plot(id) {
+	
+}
 
