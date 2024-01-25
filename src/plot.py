@@ -425,6 +425,28 @@ class RNASuiteDegsVennPlotControlPanel(RNASuitePlotControlPanel):
 			'Text style': ['text_color', 'text_size']
 		}
 
+class RNASuiteDegsUpsetPlotControlPanel(RNASuitePlotControlPanel):
+	parameters = RNASuiteDegsUpsetPlotControlParameters
+	function = 'rnasuite_degs_upset_plot_update'
+	plotname = 'DEGs Upset Plot'
+
+	@property
+	def groups(self):
+		return {
+			'Main bar plot': ['main_ylabel', 'main_color', 'show_number', 'number_angles'],
+			'Set bar plot': ['set_xlabel', 'set_color'],
+			'Matrix plot': ['point_size', 'line_width', 'matrix_color', 'matrix_alpha'],
+			'Order by': ['order_by', 'order_desc'],
+			'Intersection': ['intersect_num', 'show_empty'],
+			'Text size': ['text_scale']
+		}
+
+	def correct_param_values(self, values):
+		if values['show_empty'] == 'off':
+			values['show_empty'] = None
+
+		return values
+
 class RNASuiteDegsVolcanoPlotControlPanel(RNASuitePlotControlPanel):
 	parameters = RNASuiteDegsVolcanoPlotControlParameters
 	function = 'rnasuite_degs_volcano_plot_update'
@@ -433,12 +455,12 @@ class RNASuiteDegsVolcanoPlotControlPanel(RNASuitePlotControlPanel):
 	@property
 	def groups(self):
 		return {
-			'Show names': ['top'],
-			'Fill colors': ['fill_color', 'label_color'],
+			'Show labels': ['top'],
+			'Point style': ['point_color', 'point_size'],
 			'Show vertical line': ['show_vline', 'vline_type', 'vline_color', 'vline_width'],
 			'Show horizontal line': ['show_hline', 'hline_type', 'hline_color', 'hline_width'],
 			'Legend': ['legend_position'],
-			'Y limit': ['y_limit'],
+			'X limit': ['x_limit'],
 			'Theme': ['theme_name', 'base_size']
 		}
 
@@ -474,6 +496,9 @@ class RNASuitePlotStackedWidget(QStackedWidget):
 
 			case 'deg_volcanoplot':
 				panel_widget = RNASuiteDegsVolcanoPlotControlPanel(self.parent)
+
+			case 'deg_upsetplot':
+				panel_widget = RNASuiteDegsUpsetPlotControlPanel(self.parent)
 
 		index = self.addWidget(panel_widget)
 		self.panel_mapping[panel] = index

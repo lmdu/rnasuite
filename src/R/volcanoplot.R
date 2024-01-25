@@ -40,11 +40,11 @@ get_degs_from_edger <- function(fdr, logfc) {
 	return(x)
 }
 
-rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, top=10, fill_color=c('#ff006e', '#3a86ff', '#e9ecef'), 
-	label_color=c('#C0392B', '#27AE60'), show_vline=TRUE, vline_type='dashed', vline_color='gray',
-	vline_width=1, show_zline=FALSE, zline_type='dashed', zline_color='black', zline_width=1,
-	show_hline=TRUE, hline_type='dashed', hline_color='gray', hline_width=1, theme_name='bw',
-	base_size=11, legend_position='top', y_limit=c(0, 0), ...) {
+rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, top=10,
+	point_color=c('#ff006e', '#3a86ff', '#e9ecef'), show_vline=TRUE, vline_type='dashed', vline_color='black',
+	vline_width=0.5, show_zline=FALSE, zline_type='dashed', zline_color='black', zline_width=0.5,
+	show_hline=TRUE, hline_type='dashed', hline_color='black', hline_width=0.5, theme_name='bw',
+	base_size=11, legend_position='top', x_limit=c(0, 0), point_size=0.5, ...) {
 
 	fdr <- RNASUITE_FDR
 	logfc <- RNASUITE_LOGFC
@@ -63,12 +63,10 @@ rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, top
 		data$label[order(data$FDR)[1:top]] <- data$gene[order(data$FDR)[1:top]]
 	}
 
-	label_color <- c(label_color, 'white')
-
 	p <- ggplot(data, aes(log2FoldChange, -log10(FDR), color=deg)) +
-		geom_point() +
-		scale_fill_manual(values=fill_color)
-		#scale_color_manual(values=label_color)
+		geom_point(aes(fill=deg), size=point_size) +
+		scale_fill_manual(values=point_color) +
+		scale_color_manual(values=point_color)
 
 	if (show_vline) {
 		p <- p + geom_vline(xintercept=c(-logfc, logfc), linetype=vline_type, colour=vline_color, linewidth=vline_width)
@@ -98,11 +96,11 @@ rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, top
 	p <- p + theme(legend.position=legend_position, legend.title=element_blank())
 
 	if (top > 0) {
-		p <- p + geom_text_repel(aes(label=label), max.overlaps=100, key_glyph=draw_key_point)
+		p <- p + geom_text_repel(aes(label=label), max.overlaps=Inf, key_glyph=draw_key_point)
 	}
 
-	if (!all(y_limit == 0)) {
-		p <- p + lims(y=y_limit)
+	if (!all(x_limit == 0)) {
+		p <- p + lims(x=x_limit)
 	}
 
 	show(p)

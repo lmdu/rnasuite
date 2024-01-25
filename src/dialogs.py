@@ -499,7 +499,7 @@ class RNASuiteDegsVennPlotParameterDialog(RNASuiteParameterDialog):
 
 class RNASuiteDegsUpsetPlotParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDegsUpsetPlotParameters
-	title = "DEG Upset Plot"
+	title = "DEGs Upset Plot"
 	name = 'deg_upsetplot'
 
 	def register_events(self):

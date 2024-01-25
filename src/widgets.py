@@ -36,7 +36,7 @@ def create_parameter_widget(param):
 			widget = QDoubleSpinBox()
 			widget.setRange(*param.range)
 			widget.setSingleStep(param.step)
-			widget.setDecimals(5)
+			widget.setDecimals(param.decimal)
 
 		case 'str':
 			widget = QLineEdit()
@@ -68,6 +68,7 @@ def create_parameter_widget(param):
 			widget = RNASuiteAxisLimitWidget()
 			widget.set_ranges(*param.range)
 			widget.set_steps(param.step)
+			widget.set_decimals(param.decimal)
 
 	return widget
 
@@ -158,7 +159,7 @@ class RNASuiteAxisLimitWidget(QWidget):
 
 	def create_widgets(self):
 		self.min_limit = QDoubleSpinBox(self)
-		#self.min_limit.setDecimals(5)
+		self.min_limit.setDecimals(2)
 		self.join_label = QLabel("~", self)
 		self.max_limit = QDoubleSpinBox(self)
 		self.max_limit.setDecimals(2)
@@ -179,8 +180,12 @@ class RNASuiteAxisLimitWidget(QWidget):
 		self.min_limit.setSingleStep(step)
 		self.max_limit.setSingleStep(step)
 
+	def set_decimals(self, decimal=1):
+		self.min_limit.setDecimals(decimal)
+		self.max_limit.setDecimals(decimal)
+
 	def get_limits(self):
-		return (self.min_limit.value(), self.max_limit.value())
+		return [self.min_limit.value(), self.max_limit.value()]
 
 	def set_limits(self, limits):
 		self.min_limit.setValue(limits[0])

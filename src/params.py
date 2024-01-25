@@ -9,19 +9,20 @@ __all__ = [
 	'RNASuiteDegsVennPlotParameters',
 	'RNASuiteDegsVennPlotControlParameters',
 	'RNASuiteDegsUpsetPlotParameters',
-	'RNASuiteDegsUpsetPlotControlParamters',
+	'RNASuiteDegsUpsetPlotControlParameters',
 	'RNASuiteDegsVolcanoPlotParameters',
 	'RNASuiteDegsVolcanoPlotControlParameters',
 	'RNASuiteDeseqMaPlotControlParameters',
 ]
 
 class RNASuiteParameter(dict):
-	def __init__(self, expose=True, default=None, index=False, options=[], **kwargs):
+	def __init__(self, expose=True, default=None, index=False, decimal=1, options=[], **kwargs):
 		self.update(kwargs)
 		self['expose'] = expose
 		self['default'] = default
 		self['index'] = index
 		self['options'] = options
+		self['decimal'] = decimal
 
 	def __getattr__(self, key):
 		return self[key]
@@ -277,18 +278,16 @@ RNASuiteDegsVennPlotParameters = RNASuiteParameters(
 )
 
 RNASuiteDegsUpsetPlotParameters = RNASuiteParameters(
-	AttrDict(
+	RNASuiteParameter(
 		key = 'contrasts',
 		type = 'contrast',
-		default = None,
 		display = 'Contrasts:'
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'degtype',
 		type = 'list',
 		display = "DEG Type:",
 		options = ('All DEGs', 'Up-regulated', 'Down-regulated'),
-		default = None,
 		index = True
 	)
 )
@@ -489,8 +488,118 @@ RNASuiteDegsVennPlotControlParameters = RNASuiteParameters(
 	)
 )
 
-RNASuiteDegsUpsetPlotControlParamters = RNASuiteParameters(
-
+RNASuiteDegsUpsetPlotControlParameters = RNASuiteParameters(
+	RNASuiteParameter(
+		key = 'point_size',
+		type = 'float',
+		range = (0, 30),
+		step = 0.1,
+		default = 2.5,
+		display = 'Matrix point size:'
+	),
+	RNASuiteParameter(
+		key = 'point_size',
+		type = 'float',
+		range = (0, 30),
+		step = 0.1,
+		default = 2.5,
+		display = 'Matrix point size:'
+	),
+	RNASuiteParameter(
+		key = 'line_width',
+		type = 'float',
+		range = (0, 10),
+		step = 0.1,
+		default = 0.8,
+		display = "Matrix line width:"
+	),
+	RNASuiteParameter(
+		key = 'text_scale',
+		type = 'float',
+		range = (0, 10),
+		step = 0.1,
+		default = 1.8,
+		display = "Text size:"
+	),
+	RNASuiteParameter(
+		key = 'order_by',
+		type = 'list',
+		options = ('freq', 'degree'),
+		display = "Order by:"
+	),
+	RNASuiteParameter(
+		key = 'order_desc',
+		type = 'bool',
+		default = True,
+		display = "Descreasing:"
+	),
+	RNASuiteParameter(
+		key = 'intersect_num',
+		type = 'int',
+		range = (0, 1000),
+		step = 1,
+		default = 100,
+		display = "Number of intersections:"
+	),
+	RNASuiteParameter(
+		key = 'main_color',
+		type = 'color',
+		default = '#3b3b3b',
+		display = 'Main bar color:'
+	),
+	RNASuiteParameter(
+		key = 'main_ylabel',
+		type = 'str',
+		default = "Intersection Size",
+		display = "Main y label:"
+	),
+	RNASuiteParameter(
+		key = 'matrix_color',
+		type = 'color',
+		default = '#3b3b3b',
+		display = 'Matrix dot color:'
+	),
+	RNASuiteParameter(
+		key = 'matrix_alpha',
+		type = 'float',
+		range = (0, 1),
+		step = 0.01,
+		decimal = 2,
+		default = 0.5,
+		display = "Matrix dot alpha:"
+	),
+	RNASuiteParameter(
+		key = 'set_color',
+		type = 'color',
+		default = '#3b3b3b',
+		display = 'Set bar color:'
+	),
+	RNASuiteParameter(
+		key = 'set_xlabel',
+		type = 'str',
+		default = "Set Size",
+		display = "Set x label:"
+	),
+	RNASuiteParameter(
+		key = 'show_number',
+		type = 'list',
+		options = ('yes', 'no'),
+		display = "Show numbers:"
+	),
+	RNASuiteParameter(
+		key = 'number_angles',
+		type = 'int',
+		range = (0, 360),
+		step = 10,
+		default = 0,
+		display = "Number angles:"
+	),
+	RNASuiteParameter(
+		key = 'show_empty',
+		type = 'list',
+		options = ('off', 'on'),
+		display = "Show empty sets:"
+	)
 )
 
 RNASuiteDegsVolcanoPlotControlParameters = RNASuiteParameters(
@@ -503,16 +612,19 @@ RNASuiteDegsVolcanoPlotControlParameters = RNASuiteParameters(
 		display = "Show top significant:"
 	),
 	RNASuiteParameter(
-		key = 'fill_color',
+		key = 'point_color',
 		type = 'colors',
 		default = ('#ff006e', '#3a86ff', '#e9ecef'),
-		display = "Fill colors for Up/Down/NS:"
+		display = "Point colors for Up/Down/NS:"
 	),
 	RNASuiteParameter(
-		key = 'label_color',
-		type = 'colors',
-		default = ('#2980B9', '#27AE60'),
-		display = "Label colors for Up/Down:"
+		key = 'point_size',
+		type = 'float',
+		range = (0, 10),
+		decimal = 1,
+		step = 0.1,
+		default = 0.5,
+		display = "Point size:"
 	),
 	RNASuiteParameter(
 		key = 'show_vline',
@@ -530,15 +642,16 @@ RNASuiteDegsVolcanoPlotControlParameters = RNASuiteParameters(
 	RNASuiteParameter(
 		key = 'vline_color',
 		type = 'color',
-		default = '#E5E8E8',
+		default = '#000000',
 		display = "Vertical line color:"
 	),
 	RNASuiteParameter(
 		key = 'vline_width',
-		type = 'int',
-		range = (1, 100),
-		step =1,
-		default = 1,
+		type = 'float',
+		range = (0, 10),
+		step = 0.1,
+		decimal = 1,
+		default = 0.5,
 		display = "Vertical line width:"
 	),
 	RNASuiteParameter(
@@ -557,15 +670,16 @@ RNASuiteDegsVolcanoPlotControlParameters = RNASuiteParameters(
 	RNASuiteParameter(
 		key = 'hline_color',
 		type = 'color',
-		default = '#E5E8E8',
+		default = '#000000',
 		display = "Horizontal line color:"
 	),
 	RNASuiteParameter(
 		key = 'hline_width',
-		type = 'int',
-		range = (1, 100),
-		step =1,
-		default = 1,
+		type = 'float',
+		range = (0, 10),
+		step = 0.1,
+		decimal = 1,
+		default = 0.5,
 		display = "Horizontal line width:"
 	),
 	RNASuiteParameter(
@@ -593,11 +707,15 @@ RNASuiteDegsVolcanoPlotControlParameters = RNASuiteParameters(
 		display = 'Legend position:'
 	),
 	RNASuiteParameter(
-		key = 'y_limit',
+		key = 'x_limit',
 		type = 'limit',
 		range = (-1000, 1000),
 		step = 1,
+		decimal = 2,
 		default = (0, 0),
-		display = 'Y limit:'
+		display = 'X limit:'
 	)
 )
+
+
+

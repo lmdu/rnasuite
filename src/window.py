@@ -581,15 +581,13 @@ class RNASuiteMainWindow(QMainWindow):
 
 	@Slot()
 	def do_plot_degs_upset(self):
-		degs_params = self.stored_params.get('degs', {})
-		samples = self.table_widgets.get_data('sample_info')
-		dataset = list(samples[degs_params['compare']].unique())
-		defines = self.stored_params.get('upsetplot', {})
-		params = RNASuiteDEGUpsetPlotParameterDialog.get_params(self, defines, dataset)
-		params['tool'] = degs_params['tool']
-		worker = RNASuiteDEGUpsetPlotWorker(self, params)
+		params = RNASuiteDegsUpsetPlotParameterDialog.get_params(self)
+
+		if not params:
+			return
+
+		worker = RNASuiteDegsUpsetPlotWorker(self, params)
 		self.run_analysis_worker(worker)
-		self.stored_params['upsetplot'] = params
 
 	@Slot()
 	def do_plot_degs_volcano(self):

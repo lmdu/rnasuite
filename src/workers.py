@@ -14,7 +14,7 @@ __all__ = [
 	'RNASuiteDegsDistPlotWorker',
 	'RNASuiteDegsVennPlotWorker',
 	'RNASuiteDegsVolcanoPlotWorker',
-	'RNASuiteDEGUpsetPlotWorker',
+	'RNASuiteDegsUpsetPlotWorker',
 ]
 
 class RNASuiteBaseWorker(QThread):
@@ -90,22 +90,6 @@ class RNASuiteDegsVennPlotWorker(RNASuiteBaseWorker):
 	script = 'R/vennplot.R'
 	function = 'rnasuite_degs_venn_plot_run'
 
-class RNASuiteDEGUpsetPlotWorker(RNASuiteBaseWorker):
+class RNASuiteDegsUpsetPlotWorker(RNASuiteBaseWorker):
 	script = 'R/upsetplot.R'
-	rettype = 'plot'
-	function = 'rnasuite_degs_upset_plot'
-
-	@property
-	def data(self):
-		return {
-			'upsetplot_tool': self.params['tool'],
-			'upsetplot_contrasts': self.params['contrasts'],
-			'upsetplot_degtype': self.params['degtype']
-		}
-
-	def run(self):
-		self.submit({
-			'action': 'call',
-			'rtype': 'plot',
-			'func': 'degs_upset_plot'
-		})
+	function = 'rnasuite_degs_upset_plot_run'
