@@ -7,14 +7,17 @@
 
 library(ggplot2)
 
-deseq_degs_count <- function(fdr, logfc, compare, contrasts) {
+get_deseq_degs_count <- function(contrasts) {
+	fdr <- RNASUITE_FDR
+	logfc <- RNASUITE_LOGFC
+	compare <- RNASUITE_COMPARE
 	counts <- data.frame()
 	groups <- c()
 
 	for (contrast in contrasts) {
 		comparison <- c(compare, contrast)
-		deseq_extract_degs(fdr, logfc, comparison)
-		sig_degs <- deseq_sig_degs(fdr, logfc)
+		degs <- deseq_extract_degs(comparison)
+		sig_degs <- deseq_sig_degs(degs)
 		up_num <- sum(sig_degs$log2FoldChange>0)
 		down_num <- sum(sig_degs$log2FoldChange<0)
 		label <- paste(contrast, collapse=' vs ')
@@ -29,13 +32,26 @@ deseq_degs_count <- function(fdr, logfc, compare, contrasts) {
 	return(counts)
 }
 
-edger_degs_count <- function() {
+get_edger_degs_count <- function(contrasts) {
 
 }
 
-rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_colors=c('#E74C3C', '#3498DB'), x_rotate=0, plot_title=NULL,
-	x_label=NULL, y_label='Counts', theme_name='bw', legend_title='DEGs', base_size=11) {
-	counts <- distplot_data
+rnasuite_degs_dist_plot_update <- function(id=NULL, data=NULL, plot_type=0, show_label=FALSE,
+	bar_colors=c('#E74C3C', '#3498DB'), x_rotate=0, plot_title=NULL, x_label=NULL, y_label='Counts',
+	theme_name='bw', legend_title='DEGs', base_size=11, ...) {
+
+	if (!is.null(id)) {
+		name <- rnasuite_get_name(id)
+		data <- rnasuite_get_data(id)
+	} else {
+		name <- "DEGs distribution plot"
+	}
+
+	if (is.null(data)) {
+		return(NULL)
+	}
+
+	counts <- data
 
 	if (plot_type == 0) {
 		counts$value <- as.numeric(counts$value) * c(1, -1)
@@ -90,17 +106,20 @@ rnasuite_degs_dist_plot_update <- function(plot_type=0, show_label=FALSE, bar_co
 	}
 
 	show(p)
-	plot_id <- as.integer(hgd_id()$id)
-	out <- list(c(1, "DEGs dist plot", plot_id, 'deg_distplot'))
+	new <- as.integer(hgd_id()$id)
+	rnasuite_put_plot(id, new, name, plot, data)
+	out <- list(c(1, name, new, 'deg_distplot'))
 	return(out)
 }
 
-rnasuite_degs_dist_plot_run <- function(tool, fdr, logfc, compare, contrasts) {
+rnasuite_degs_dist_plot_run <- function(contrasts, ...) {
+	tool <- RNASUITE_DEGTOOL
+
 	if (tool == 'deseq') {
-		distplot_data <<- deseq_degs_count(fdr, logfc, compare, contrasts)
+		data <- get_deseq_degs_count(contrasts)
 	} else if (tool == 'edger') {
-		distplot_data <<- edger_degs_count()
+		data <- get_edger_degs_count(contrasts)
 	}
 
-	rnasuite_degs_dist_plot_update()
+	rnasuite_degs_dist_plot_update(data=data)
 }

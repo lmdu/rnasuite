@@ -85,7 +85,7 @@ class RNASuitePandasModel(QAbstractTableModel):
 		self.endResetModel()
 
 class RNASuiteOutputTreeModel(RNASuitePandasModel):
-	_headers = ['Name', '', 'plot', 'id', 'type']
+	_headers = ['Name', '', 'plot', 'id', 'type', 'pyid']
 
 	def data(self, index, role=Qt.ItemDataRole):
 		if not index.isValid():

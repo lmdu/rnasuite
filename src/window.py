@@ -239,8 +239,8 @@ class RNASuiteMainWindow(QMainWindow):
 		self.edger_degs_act = QAction("Identify DEGs by edgeR", self)
 		self.edger_degs_act.triggered.connect(self.do_identify_degs_by_edger)
 
-		self.show_degs_act = QAction("Show Identified DEGs", self)
-		self.show_degs_act.triggered.connect(self.do_show_identifid_degs)
+		self.show_degs_act = QAction("Extract Identified DEGs", self)
+		self.show_degs_act.triggered.connect(self.do_extract_identifid_degs)
 
 		self.sample_cluster_act = QAction("Sample Cluster Analysis", self)
 
@@ -549,27 +549,13 @@ class RNASuiteMainWindow(QMainWindow):
 		return False
 
 	@Slot()
-	def do_show_identifid_degs(self):
-		if self.has_running_worker():
-			return
-
-		if self.has_none_deg_data():
-			return
-
-		if self.has_none_identified_degs():
-			return
-
-		defines = self.stored_params.get('degs', {})
-		samples = self.table_widgets.get_data('sample_info')
-		dataset = {c: list(samples[c].unique()) for c in samples.columns}
-		params = RNASuiteShowDEGParameterDialog.get_params(self, defines, dataset)
+	def do_extract_identifid_degs(self):
+		params = RNASuiteExtractDegsParameterDialog.get_params(self)
 
 		if not params:
 			return
 
-		params['compare'] = defines['compare']
-		params['tool'] = defines['tool']
-		worker = RNASuiteShowDEGWorker(self, params)
+		worker = RNASuiteDegsExtractWorker(self, params)
 		self.run_analysis_worker(worker)
 
 	@Slot()
@@ -607,13 +593,13 @@ class RNASuiteMainWindow(QMainWindow):
 
 	@Slot()
 	def do_plot_degs_volcano(self):
-		degs_params = self.stored_params.get('degs', {})
-		defines = self.stored_params.get('volcanoplot', {})
-		params = RNASuiteDEGVolcanoPlotParameterDialog.get_params(self, defines)
-		params['tool'] = degs_params['tool']
-		worker = RNASuiteDEGVolcanoPlotWorker(self, params)
+		params = RNASuiteDegsVolcanoPlotParameterDialog.get_params(self)
+		
+		if not params:
+			return
+
+		worker = RNASuiteDegsVolcanoPlotWorker(self, params)
 		self.run_analysis_worker(worker)
-		self.stored_params['volcanoplot'] = params
 
 	@Slot()
 	def do_plot_degs_ma(self):

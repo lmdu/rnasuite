@@ -370,13 +370,13 @@ class RNASuiteInputListWidget(QListWidget):
 
 class RNASuiteOutputTreeWidget(QTreeView):
 	show_table = Signal(object)
-	show_panel = Signal(str)
+	show_panel = Signal(str, int, int)
 	show_plot = Signal(int)
 	remove_plot = Signal(int)
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
-		self.table_id = 0
+		self.rowid = 0
 		self.datasets = {}
 		self.setRootIsDecorated(False)
 		self.doubleClicked.connect(self._on_row_clicked)
@@ -387,13 +387,14 @@ class RNASuiteOutputTreeWidget(QTreeView):
 		return QSize(200, 500)
 
 	def create_model(self):
-		self._data = pandas.DataFrame(columns=['name', 'update', 'plot', 'id', 'type'])
+		self._data = pandas.DataFrame(columns=['name', 'update', 'plot', 'rid', 'type', 'pyid'])
 		self._model = RNASuiteOutputTreeModel(self)
 		self._model.load_data(self._data)
 		self.setModel(self._model)
 		self.setColumnHidden(2, True)
 		self.setColumnHidden(3, True)
 		self.setColumnHidden(4, True)
+		self.setColumnHidden(5, True)
 		self.header().setStretchLastSection(False)
 		self.header().setSectionResizeMode(0, QHeaderView.Stretch)
 		self.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -406,38 +407,48 @@ class RNASuiteOutputTreeWidget(QTreeView):
 
 			if row['plot']:
 				row['data'] = int(row['data'])
+
 				if data_id != row['data']:
 					self.remove_plot.emit(data_id)
 
 				self._data.loc[self._data['plot'] == 1, 'update'] = 0
 				self._data.iloc[row_num, 3] = row['data']
 				self._data.iloc[row_num, 1] = 1
-
+				row['rid'] = row['data']
+				row['pyid'] = self._data.iloc[row_num, 5]
 
 			else:
 				self.datasets[data_id] = pandas.DataFrame.from_dict(row['data'], orient='tight')
 
 		else:
 			data = row.pop('data')
+			self.rowid += 1
 
 			if row['plot']:
 				data_id = int(data)
 				self._data.loc[self._data['plot'] == 1, 'update'] = 0
 
 			else:
-				self.table_id += 1
-				data_id = self.table_id
+				data_id = self.rowid
 				self.datasets[data_id] = pandas.DataFrame.from_dict(data, orient='tight')
 
-			row['id'] = data_id
+			row['rid'] = data_id
+			row['pyid'] = self.rowid
 			self._data = pandas.concat(
 				[pandas.DataFrame([row], columns = self._data.columns), self._data],
 				ignore_index = True
 			)
-			self._model.load_data(self._data)
+	
+		self._model.load_data(self._data)
+
+		if row['plot']:
+			self.show_panel.emit(row['type'], row['rid'], row['pyid'])
 
 	@Slot()
 	def receive(self, results):
+		if not results:
+			return
+
 		for result in results:
 			self.add_row(
 				name = result[1],
@@ -447,18 +458,16 @@ class RNASuiteOutputTreeWidget(QTreeView):
 				type = result[3]
 			)
 
-			if result[0]:
-				self.show_panel.emit(result[3])
-
 	def _on_row_clicked(self, index):
 		row = index.row()
 		plot = self._data.iloc[row, 2]
 		did = self._data.iloc[row, 3]
 		ptype = self._data.iloc[row, 4]
+		pyid = self._data.iloc[row, 5]
 
 		if plot:
 			self.show_plot.emit(did)
-			self.show_panel.emit(ptype)
+			self.show_panel.emit(ptype, did, pyid)
 			self._data.loc[self._data['plot'] == 1, 'update'] = 0
 			self._data.iloc[row, 1] = 1
 
@@ -466,6 +475,8 @@ class RNASuiteOutputTreeWidget(QTreeView):
 			data = self.datasets[did]
 			self.show_table.emit(data)
 			self._data.iloc[row, 1] = 0
+
+		self._model.load_data(self._data)
 
 class RNASuiteSpacerWidget(QWidget):
 	def __init__(self, parent=None):

@@ -7,13 +7,16 @@
 
 library(ggvenn)
 
-get_degs_from_deseq <- function(fdr, logfc, degtype, compare, contrasts) {
+get_degs_from_deseq <- function(degtype, contrasts) {
+	fdr <- RNASUITE_FDR
+	logfc <- RNASUITE_LOGFC
+	compare <- RNASUITE_COMPARE
 	degs <- list()
 
 	for (contrast in contrasts) {
 		comparison <- c(compare, contrast)
-		deseq_extract_degs(fdr, logfc, comparison)
-		sig_degs <- deseq_sig_degs(fdr, logfc)
+		all_degs <- deseq_extract_degs(comparison)
+		sig_degs <- deseq_sig_degs(all_degs)
 		label <- paste(contrast, collapse=' vs ')
 
 		if (degtype == 1) {
@@ -28,18 +31,32 @@ get_degs_from_deseq <- function(fdr, logfc, degtype, compare, contrasts) {
 	return(degs)
 }
 
-rnasuite_degs_venn_plot_update <- function(fill_color=c('#E74C3C', '#3498DB', '#2ECC71', '#F1C40F'), ...) {
-	p <- ggvenn(vennplot_data, fill_color = fill_color, ...)
+rnasuite_degs_venn_plot_update <- function(id=NULL, data=NULL, fill_color=c('#E74C3C', '#3498DB', '#2ECC71', '#F1C40F'), ...) {
+	if (!is.null(id)) {
+		name <- rnasuite_get_name(id)
+		data <- rnasuite_get_data(id)
+	} else {
+		name <- "DEGs venn plot"
+	}
+
+	if (is.null(data)) {
+		return(NULL)
+	}
+
+	p <- ggvenn(data, fill_color = fill_color, ...)
 	show(p)
-	plot_id <- as.integer(hgd_id()$id)
-	out <- list(c(1, "DEGs venn plot", plot_id, 'deg_vennplot'))
+	new <- as.integer(hgd_id()$id)
+	rnasuite_put_plot(id, new, name, p, data)
+	out <- list(c(1, name, new, 'deg_vennplot'))
 	return(out)
 }
 
-rnasuite_degs_venn_plot_run <- function(tool, fdr, logfc, degtype, compare, contrasts) {
+rnasuite_degs_venn_plot_run <- function(degtype, contrasts, ...) {
+	tool <- RNASUITE_DEGTOOL
+
 	if (tool == 'deseq') {
-		vennplot_data <<- get_degs_from_deseq(fdr, logfc, degtype, compare, contrasts)
+		data <- get_degs_from_deseq(degtype, contrasts)
 	}
 
-	rnasuite_degs_venn_plot_update()
+	rnasuite_degs_venn_plot_update(data=data)
 }

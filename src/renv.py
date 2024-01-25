@@ -93,15 +93,16 @@ class RNASuiteREnvironment(multiprocessing.Process):
 		if not self.load_package('reticulate'):
 			return
 
-		self.source_file('pipe.R')
+		#self.source_file('pipe.R')
 
 	def start_r_env(self):
 		rchitect.init()
-		self.set_hooks()
+		#self.set_hooks()
 		self.set_callbacks()
 
 		self.load_httpgd()
 		self.load_reticulate()
+		self.source_file('rnasuite.R')
 		#self.load_package('DESeq2')
 
 	def run(self):

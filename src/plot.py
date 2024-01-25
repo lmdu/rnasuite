@@ -259,8 +259,11 @@ class RNASuitePlotControlPanel(QWidget):
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
+		self.rid = None
+		self.pyid = None
 		self.parent = parent
 		self.widgets = AttrDict()
+		self.stored = {}
 
 		self.create_widgets()
 		self.set_layouts()
@@ -268,12 +271,33 @@ class RNASuitePlotControlPanel(QWidget):
 		self.register_events()
 		self.group_widgets()
 
+	def set_plot(self, rid, pyid):
+		self.rid = rid
+		self.pyid = pyid
+
+		params = self.stored.get(self.pyid, None)
+
+		if params is not None:
+			self.reset_widgets(params)
+
+		else:
+			self.restore_widgets()
+
+		#self.title_label.setText("<b>{} {}</b>".format(self.plotname, self.rid))
+
 	@Slot()
 	def _on_update_clicked(self):
+		if self.parent.has_running_worker():
+			return
+
+		params = self.get_param_values()
+		self.stored[self.pyid] = params
+		params['id'] = self.rid
+
 		self.parent.pyconn.send({
 			'action': 'call',
 			'func': self.function,
-			'params': self.get_param_values()
+			'params': params
 		})
 
 	def create_widgets(self):
@@ -369,10 +393,6 @@ class RNASuiteDeseqMaPlotControlPanel(RNASuitePlotControlPanel):
 		if not any(values['ylim']):
 			values['ylim'] = None
 
-		degparam = self.parent.global_params['degs']
-		values['treatment'] = degparam['treatment']
-		values['control'] = degparam['control']
-
 		return values
 
 class RNASuiteDegsDistPlotControlPanel(RNASuitePlotControlPanel):
@@ -405,6 +425,23 @@ class RNASuiteDegsVennPlotControlPanel(RNASuitePlotControlPanel):
 			'Text style': ['text_color', 'text_size']
 		}
 
+class RNASuiteDegsVolcanoPlotControlPanel(RNASuitePlotControlPanel):
+	parameters = RNASuiteDegsVolcanoPlotControlParameters
+	function = 'rnasuite_degs_volcano_plot_update'
+	plotname = 'DEGs Volcano Plot'
+
+	@property
+	def groups(self):
+		return {
+			'Show names': ['top'],
+			'Fill colors': ['fill_color', 'label_color'],
+			'Show vertical line': ['show_vline', 'vline_type', 'vline_color', 'vline_width'],
+			'Show horizontal line': ['show_hline', 'hline_type', 'hline_color', 'hline_width'],
+			'Legend': ['legend_position'],
+			'Y limit': ['y_limit'],
+			'Theme': ['theme_name', 'base_size']
+		}
+
 class RNASuitePlotStackedWidget(QStackedWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -435,12 +472,15 @@ class RNASuitePlotStackedWidget(QStackedWidget):
 			case 'deg_vennplot':
 				panel_widget = RNASuiteDegsVennPlotControlPanel(self.parent)
 
+			case 'deg_volcanoplot':
+				panel_widget = RNASuiteDegsVolcanoPlotControlPanel(self.parent)
+
 		index = self.addWidget(panel_widget)
 		self.panel_mapping[panel] = index
 
 		return index
 
-	def show_panel(self, panel):
+	def show_panel(self, panel, rid, pyid):
 		if panel in self.panel_mapping:
 			index = self.panel_mapping[panel]
 
@@ -448,3 +488,4 @@ class RNASuitePlotStackedWidget(QStackedWidget):
 			index = self.add_panel(panel)
 
 		self.setCurrentIndex(index)
+		self.widget(index).set_plot(rid, pyid)

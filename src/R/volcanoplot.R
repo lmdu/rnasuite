@@ -10,17 +10,21 @@
 library(ggplot2)
 library(ggrepel)
 
-get_degs_from_deseq <- function(fdr, logfc, compare, treatment, control) {
+get_degs_from_deseq <- function(treatment, control) {
+	fdr <- RNASUITE_FDR
+	logfc <- RNASUITE_LOGFC
+	compare <- RNASUITE_COMPARE
+
 	contrast <- c(compare, treatment, control)
-	deseq_extract_degs(fdr, logfc, contrast)
-	x <- as.data.frame(na.omit(deseq_degs))
+	degs <- deseq_extract_degs(contrast)
+	x <- as.data.frame(na.omit(degs))
 	colnames(x)[which(names(x) == 'padj')] <- 'FDR'
 	x$deg <- 'NS'
 	x$deg[x$log2FoldChange >= logfc & x$FDR < fdr] <- 'Up'
 	x$deg[x$log2FoldChange <= -logfc & x$FDR < fdr] <- 'Down'
 	up_label <- paste('Up:', sum(x$deg == 'Up'))
 	down_label <- paste('Down:', sum(x$deg == 'Down'))
-	x$deg <- factor(x$deg, levels=c('NS', 'Up', 'Down'), labels=c('NS', up_label, down_label))
+	x$deg <- factor(x$deg, levels=c('Up', 'Down', 'NS'), labels=c(up_label, down_label, 'NS'))
 	return(x)
 }
 
@@ -36,15 +40,22 @@ get_degs_from_edger <- function(fdr, logfc) {
 	return(x)
 }
 
-rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, fdr=1, logfc=0.05, top=10,
-	fill_colors=c(), label_colors=c(), show_vline=TRUE, vline_type='dash', vline_color='gray',
-	vline_width=1, show_zline=FALSE, vline_type='dash', vline_color='black', vline_width=1,
-	show_hline=TRUE, hline_type='dash', hline_color='gray', hline_width=1, theme_name='bw',
-	base_size=11, legend_position='top', y_limit=c(0, 0)) {
+rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, top=10, fill_color=c('#ff006e', '#3a86ff', '#e9ecef'), 
+	label_color=c('#C0392B', '#27AE60'), show_vline=TRUE, vline_type='dashed', vline_color='gray',
+	vline_width=1, show_zline=FALSE, zline_type='dashed', zline_color='black', zline_width=1,
+	show_hline=TRUE, hline_type='dashed', hline_color='gray', hline_width=1, theme_name='bw',
+	base_size=11, legend_position='top', y_limit=c(0, 0), ...) {
+
+	fdr <- RNASUITE_FDR
+	logfc <- RNASUITE_LOGFC
 
 	if (!is.null(id)) {
 		data <- rnasuite_get_data(id)
 		name <- rnasuite_get_name(id)
+	}
+
+	if (is.null(data)) {
+		return(NULL)
 	}
 
 	if (top > 0) {
@@ -52,21 +63,23 @@ rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, fdr
 		data$label[order(data$FDR)[1:top]] <- data$gene[order(data$FDR)[1:top]]
 	}
 
+	label_color <- c(label_color, 'white')
+
 	p <- ggplot(data, aes(log2FoldChange, -log10(FDR), color=deg)) +
-		geom_point(aes(fill=deg)) +
-		scale_fill_manual(values=fill_colors) +
-		scale_color_manual(values=label_colors) +
+		geom_point() +
+		scale_fill_manual(values=fill_color)
+		#scale_color_manual(values=label_color)
 
 	if (show_vline) {
-		p <- p + geom_vline(xintercept=c(-logfc, logfc), linetype=vline_type, colour=vline_color, size=vline_width)
+		p <- p + geom_vline(xintercept=c(-logfc, logfc), linetype=vline_type, colour=vline_color, linewidth=vline_width)
 	}
 
 	if (show_zline) {
-		p <- p + geom_vline(xintercept=0, linetype=zline_type, colour=zline_color, size=zline_width)
+		p <- p + geom_vline(xintercept=0, linetype=zline_type, colour=zline_color, linewidth=zline_width)
 	}
 
 	if (show_hline) {
-		p <- p + geom_hline(yintercept=-log10(fdr), linetype=hline_type, colour=hline_color, size=hline_width)
+		p <- p + geom_hline(yintercept=-log10(fdr), linetype=hline_type, colour=hline_color, linewidth=hline_width)
 	}
 
 	theme_func <- switch(theme_name,
@@ -93,22 +106,19 @@ rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, fdr
 	}
 
 	show(p)
-	plot_id <- as.integer(hgd_id()$id)
-	rnasuite_put_plot(id, plot_id, p, data)
-	out <- list(c(1, name, plot_id, 'deg_distplot'))
+	new <- as.integer(hgd_id()$id)
+	rnasuite_put_plot(id, new, name, p, data)
+	out <- list(c(1, name, new, 'deg_volcanoplot'))
 	return(out)
 }
 
-rnasuite_degs_volcano_plot_show <- function(id) {
-	p <- rnasuite_get_plot(id)
-	show(p)
-}
+rnasuite_degs_volcano_plot_run <- function(treatment, control, gname, gnsep, gncol, ...) {
+	tool <- RNASUITE_DEGTOOL
 
-rnasuite_degs_volcano_plot_run <- function(tool, fdr, logfc, compare, treatment, control, gname, gnsep, gncol) {
 	if (tool == 'deseq') {
-		data <<- get_degs_from_deseq(fdr, logfc)
+		data <- get_degs_from_deseq(treatment, control)
 	} else {
-		data <<- get_degs_from_edger(fdr, logfc)
+		data <- get_degs_from_edger(treatment, control)
 	}
 
 	if (gname == 0) {
@@ -124,5 +134,5 @@ rnasuite_degs_volcano_plot_run <- function(tool, fdr, logfc, compare, treatment,
 	}
 
 	name = paste(treatment, 'vs', control, 'volcano plot')
-	rnasuite_degs_volcano_plot_update(data=data, name=name, fdr=fdr, logfc=logfc)
+	rnasuite_degs_volcano_plot_update(data=data, name=name)
 }

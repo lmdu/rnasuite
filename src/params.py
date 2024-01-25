@@ -2,7 +2,7 @@ from utils import *
 
 __all__ = [
 	'RNASuiteDeseqParameters',
-	'RNASuiteShowDEGParameters',
+	'RNASuiteExtractDegsParameters',
 	'RNASuiteEdgerParameters',
 	'RNASuiteDegsDistPlotParameters',
 	'RNASuiteDegsDistPlotControlParameters',
@@ -10,7 +10,8 @@ __all__ = [
 	'RNASuiteDegsVennPlotControlParameters',
 	'RNASuiteDegsUpsetPlotParameters',
 	'RNASuiteDegsUpsetPlotControlParamters',
-	'RNASuiteDEGVolcanoPlotParameters',
+	'RNASuiteDegsVolcanoPlotParameters',
+	'RNASuiteDegsVolcanoPlotControlParameters',
 	'RNASuiteDeseqMaPlotControlParameters',
 ]
 
@@ -184,38 +185,34 @@ RNASuiteEdgerParameters = RNASuiteParameters(
 	)
 )
 
-RNASuiteShowDEGParameters = RNASuiteParameters(
-	AttrDict(
-		key = 'fdr',
-		type = 'float',
-		range = (0, 1),
-		step = 0.01,
-		display = 'FDR:',
-		default = 0.05
-	),
-	AttrDict(
-		key = 'lgfc',
-		type = 'int',
-		range = (0, 100),
-		step = 1,
-		display = 'log2FoldChange:',
-		default = 1
-	),
-	AttrDict(
+RNASuiteExtractDegsParameters = RNASuiteParameters(
+	# AttrDict(
+	# 	key = 'fdr',
+	# 	type = 'float',
+	# 	range = (0, 1),
+	# 	step = 0.01,
+	# 	display = 'FDR:',
+	# 	default = 0.05
+	# ),
+	# AttrDict(
+	# 	key = 'lgfc',
+	# 	type = 'int',
+	# 	range = (0, 100),
+	# 	step = 1,
+	# 	display = 'log2FoldChange:',
+	# 	default = 1
+	# ),
+	RNASuiteParameter(
 		key = 'control',
 		type = 'list',
 		options = [],
-		display = 'Control group:',
-		default = None,
-		index = False
+		display = 'Control group:'
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'treatment',
 		type = 'list',
 		options = [],
-		display = 'Treatment group:',
-		default = None,
-		index = False
+		display = 'Treatment group:'
 	)
 )
 
@@ -228,40 +225,19 @@ RNASuiteDegsDistPlotParameters = RNASuiteParameters(
 	)
 )
 
-RNASuiteDEGVolcanoPlotParameters = RNASuiteParameters(
-	AttrDict(
-		key = 'ncolor',
-		type = 'color',
-		display = "Not-significant color:",
-		default = '#eaeded'
+RNASuiteDegsVolcanoPlotParameters = RNASuiteParameters(
+	RNASuiteParameter(
+		key = 'control',
+		type = 'list',
+		display = 'Control group:'
 	),
-	AttrDict(
-		key = 'ucolor',
-		type = 'color',
-		display = "Up-regulated color:",
-		default = '#e41a1c'
+	RNASuiteParameter(
+		key = 'treatment',
+		type = 'list',
+		options = [],
+		display = 'Treatment group:',
 	),
-	AttrDict(
-		key = 'dcolor',
-		type = 'color',
-		display = "Down-regulated color:",
-		default = '#377eb8'
-	),
-	AttrDict(
-		key = 'line',
-		type = 'bool',
-		display = "Add threshold dashed lines:",
-		default = True
-	),
-	AttrDict(
-		key = 'top',
-		type = 'int',
-		range = (0, 1000),
-		step = 1,
-		display = "Show top significant gene names:",
-		default = 10
-	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'gname',
 		type = 'list',
 		options = ('gene ID column', 'gene annotation'),
@@ -269,27 +245,19 @@ RNASuiteDEGVolcanoPlotParameters = RNASuiteParameters(
 		default = None,
 		index = True
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'gnsep',
 		type = 'str',
 		display = "Gene ID separator:",
 		default = '|'
 	),
-	AttrDict(
+	RNASuiteParameter(
 		key = 'gncol',
 		type = 'int',
 		range = (1, 100),
 		step = 1,
 		default = 1,
 		display = "Show gene names in column:"
-	),
-	AttrDict(
-		key = 'limit',
-		type = 'int',
-		range = (0, 100),
-		step = 1,
-		default = 0,
-		display = "Log2 Fold Change limit:"
 	)
 )
 
@@ -297,7 +265,6 @@ RNASuiteDegsVennPlotParameters = RNASuiteParameters(
 	RNASuiteParameter(
 		key = 'contrasts',
 		type = 'contrast',
-		default = None,
 		display = 'Contrasts:'
 	),
 	RNASuiteParameter(
@@ -305,7 +272,6 @@ RNASuiteDegsVennPlotParameters = RNASuiteParameters(
 		type = 'list',
 		display = "DEG Type:",
 		options = ('All DEGs', 'Up-regulated', 'Down-regulated'),
-		default = None,
 		index = True
 	)
 )
@@ -525,4 +491,113 @@ RNASuiteDegsVennPlotControlParameters = RNASuiteParameters(
 
 RNASuiteDegsUpsetPlotControlParamters = RNASuiteParameters(
 
+)
+
+RNASuiteDegsVolcanoPlotControlParameters = RNASuiteParameters(
+	RNASuiteParameter(
+		key = 'top',
+		type = 'int',
+		range = (0, 1000),
+		step = 1,
+		default = 10,
+		display = "Show top significant:"
+	),
+	RNASuiteParameter(
+		key = 'fill_color',
+		type = 'colors',
+		default = ('#ff006e', '#3a86ff', '#e9ecef'),
+		display = "Fill colors for Up/Down/NS:"
+	),
+	RNASuiteParameter(
+		key = 'label_color',
+		type = 'colors',
+		default = ('#2980B9', '#27AE60'),
+		display = "Label colors for Up/Down:"
+	),
+	RNASuiteParameter(
+		key = 'show_vline',
+		type = 'bool',
+		default = True,
+		display = "Show vertical line:"
+	),
+	RNASuiteParameter(
+		key = 'vline_type',
+		type = 'list',
+		options = ['dashed', 'dotted', 'dotdash', 'longdash', 'twodash', 'solid'],
+		default = 'dashed',
+		display = "Vertical line type:"
+	),
+	RNASuiteParameter(
+		key = 'vline_color',
+		type = 'color',
+		default = '#E5E8E8',
+		display = "Vertical line color:"
+	),
+	RNASuiteParameter(
+		key = 'vline_width',
+		type = 'int',
+		range = (1, 100),
+		step =1,
+		default = 1,
+		display = "Vertical line width:"
+	),
+	RNASuiteParameter(
+		key = 'show_hline',
+		type = 'bool',
+		default = True,
+		display = "Show horizontal line:"
+	),
+	RNASuiteParameter(
+		key = 'hline_type',
+		type = 'list',
+		options = ['dashed', 'dotted', 'dotdash', 'longdash', 'twodash', 'solid'],
+		default = 'dashed',
+		display = "Horizontal line type:"
+	),
+	RNASuiteParameter(
+		key = 'hline_color',
+		type = 'color',
+		default = '#E5E8E8',
+		display = "Horizontal line color:"
+	),
+	RNASuiteParameter(
+		key = 'hline_width',
+		type = 'int',
+		range = (1, 100),
+		step =1,
+		default = 1,
+		display = "Horizontal line width:"
+	),
+	RNASuiteParameter(
+		key = 'theme_name',
+		type = 'list',
+		options = ['bw', 'classic', 'linedraw',
+			'minimal', 'void', 'light', 'grey',
+			'gray', 'dark'
+		],
+		display = 'Plot theme:'
+	),
+	RNASuiteParameter(
+		key = 'base_size',
+		type = 'int',
+		range = (1, 100),
+		step = 1,
+		default = 11,
+		display = 'Base size:'
+	),
+	RNASuiteParameter(
+		key = 'legend_position',
+		type = 'list',
+		options = ['top', 'bottom', 'right'],
+		default = 'top',
+		display = 'Legend position:'
+	),
+	RNASuiteParameter(
+		key = 'y_limit',
+		type = 'limit',
+		range = (-1000, 1000),
+		step = 1,
+		default = (0, 0),
+		display = 'Y limit:'
+	)
 )

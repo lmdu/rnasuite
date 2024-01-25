@@ -17,10 +17,10 @@ __all__ = [
 	'RNASuitePackageManagerDialog',
 	'RNASuiteDeseqParameterDialog',
 	'RNASuiteEdgerParameterDialog',
-	'RNASuiteShowDEGParameterDialog',
+	'RNASuiteExtractDegsParameterDialog',
 	'RNASuiteDegsDistPlotParameterDialog',
 	'RNASuiteDegsVennPlotParameterDialog',
-	'RNASuiteDEGVolcanoPlotParameterDialog',
+	'RNASuiteDegsVolcanoPlotParameterDialog',
 	'RNASuiteDegsUpsetPlotParameterDialog',
 	'RNASuiteColumnSeparatorDialog',
 	'RNASuiteShowPandasDataDialog'
@@ -249,7 +249,7 @@ class RNASuitePackageManagerDialog(QDialog):
 class RNASuiteParameterDialog(QDialog):
 	parameters = {}
 	title = None
-	pname = None
+	name = None
 
 	def __init__(self, parent=None, defines={}, dataset=None):
 		super().__init__(parent)
@@ -312,32 +312,19 @@ class RNASuiteParameterDialog(QDialog):
 
 		if dlg.exec() == QDialog.Accepted:
 			params = dlg.get_param_values()
-			parent.global_params[self.pname] = params
+			parent.global_params[dlg.name] = params
 			return params
 
 class RNASuiteDeseqParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDeseqParameters
 	title = "Identify DEGs by DESeq2"
-	pname = 'degs'
+	name = 'degs'
 
 	@classmethod
 	def get_preset_datas(self, parent):
-		defines = parent.global_params.get(self.pname, {})
+		defines = parent.global_params.get(self.name, {})
 		dataset = parent.input_list.get_groups()
 		return defines, dataset
-
-	@classmethod
-	def get_params(cls, parent=None):
-		defines, dataset = cls.get_preset_datas(parent)
-		dlg = cls(parent, defines, dataset)
-
-		if dlg.exec() == QDialog.Accepted:
-			params = dlg.get_param_values()
-			params['tool'] = 'deseq'
-			params['counts'] = parent.input_list.read_counts
-			params['samples'] = parent.input_list.sample_info
-			parent.global_params[dlg.pname] = params
-			return params
 
 	@Slot()
 	def custom_design_toggle(self, state):
@@ -376,9 +363,22 @@ class RNASuiteDeseqParameterDialog(RNASuiteParameterDialog):
 		self.widgets.compare.addItems(list(self.dataset.keys()))
 		self.widgets.eliminate.currentTextChanged.connect(self.eliminate_factor_changed)
 
+	@classmethod
+	def get_params(cls, parent=None):
+		defines, dataset = cls.get_preset_datas(parent)
+		dlg = cls(parent, defines, dataset)
+
+		if dlg.exec() == QDialog.Accepted:
+			params = dlg.get_param_values()
+			parent.global_params[dlg.name] = params
+			params['counts'] = parent.input_list.read_counts
+			params['samples'] = parent.input_list.sample_info
+			return params
+
 class RNASuiteEdgerParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteEdgerParameters
 	title = "Identify DEGs by edgeR"
+	name = 'degs'
 
 	@Slot()
 	def custom_design_toggle(self, state):
@@ -429,13 +429,34 @@ class RNASuiteEdgerParameterDialog(RNASuiteParameterDialog):
 		self.widgets.eliminate.currentTextChanged.connect(self.eliminate_factor_changed)
 		self.widgets.replicate.currentIndexChanged.connect(self.with_replicate_changed)
 
-class RNASuiteShowDEGParameterDialog(RNASuiteParameterDialog):
-	parameters = RNASuiteShowDEGParameters
-	title = "Show DEGs"
+	@classmethod
+	def get_params(cls, parent=None):
+		defines, dataset = cls.get_preset_datas(parent)
+		dlg = cls(parent, defines, dataset)
+
+		if dlg.exec() == QDialog.Accepted:
+			params = dlg.get_param_values()
+			parent.global_params[dlg.name] = params
+			params['counts'] = parent.input_list.read_counts
+			params['samples'] = parent.input_list.sample_info
+			return params
+
+class RNASuiteExtractDegsParameterDialog(RNASuiteParameterDialog):
+	parameters = RNASuiteExtractDegsParameters
+	title = "Extract identified DEGs"
+	name = 'extract'
+
+	@classmethod
+	def get_preset_datas(self, parent):
+		deparam = parent.global_params.get('degs', {})
+		defines = parent.global_params.get(self.name, {})
+		compare = deparam['compare']
+		groups = parent.input_list.get_groups()
+		dataset = groups[compare]
+		return defines, dataset
 
 	def register_events(self):
-		group = self.defines['compare']
-		groups = list(map(str, self.dataset[group]))
+		groups = list(map(str, self.dataset))
 		self.widgets.control.clear()
 		self.widgets.control.addItems(groups)
 		self.widgets.treatment.clear()
@@ -444,30 +465,16 @@ class RNASuiteShowDEGParameterDialog(RNASuiteParameterDialog):
 class RNASuiteDegsDistPlotParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDegsDistPlotParameters
 	title = 'DEGs Distribution Plot'
-	pname = 'deg_distplot'
+	name = 'deg_distplot'
 
 	@classmethod
 	def get_preset_datas(self, parent):
 		deparam = parent.global_params.get('degs', {})
-		defines = parent.global_params.get(self.pname, {})
+		defines = parent.global_params.get(self.name, {})
 		compare = deparam['compare']
 		groups = parent.input_list.get_groups()
 		dataset = groups[compare]
-		return deparam, defines, dataset
-
-	@classmethod
-	def get_params(cls, parent=None):
-		deparam, defines, dataset = cls.get_preset_datas(parent)
-		dlg = cls(parent, defines, dataset)
-
-		if dlg.exec() == QDialog.Accepted:
-			params = dlg.get_param_values()
-			params['tool'] = deparam['tool']
-			params['fdr'] = deparam['fdr']
-			params['logfc'] = deparam['logfc']
-			params['compare'] = deparam['compare']
-			parent.global_params[dlg.pname] = params
-			return params
+		return defines, dataset
 
 	def register_events(self):
 		self.widgets.contrasts.set_selection(self.dataset)
@@ -475,7 +482,7 @@ class RNASuiteDegsDistPlotParameterDialog(RNASuiteParameterDialog):
 class RNASuiteDegsVennPlotParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDegsVennPlotParameters
 	title = "DEGs Venn Plot"
-	pname = 'deg_vennplot'
+	name = 'deg_vennplot'
 
 	def register_events(self):
 		self.widgets.contrasts.set_selection(self.dataset)
@@ -484,29 +491,16 @@ class RNASuiteDegsVennPlotParameterDialog(RNASuiteParameterDialog):
 	@classmethod
 	def get_preset_datas(self, parent):
 		deparam = parent.global_params.get('degs', {})
-		defines = parent.global_params.get(self.pname, {})
+		defines = parent.global_params.get(self.name, {})
 		compare = deparam['compare']
 		groups = parent.input_list.get_groups()
 		dataset = groups[compare]
-		return deparam, defines, dataset
-
-	@classmethod
-	def get_params(cls, parent=None):
-		deparam, defines, dataset = cls.get_preset_datas(parent)
-		dlg = cls(parent, defines, dataset)
-
-		if dlg.exec() == QDialog.Accepted:
-			params = dlg.get_param_values()
-			params['tool'] = deparam['tool']
-			params['fdr'] = deparam['fdr']
-			params['logfc'] = deparam['logfc']
-			params['compare'] = deparam['compare']
-			parent.global_params[dlg.pname] = params
-			return params
+		return defines, dataset
 
 class RNASuiteDegsUpsetPlotParameterDialog(RNASuiteParameterDialog):
 	parameters = RNASuiteDegsUpsetPlotParameters
 	title = "DEG Upset Plot"
+	name = 'deg_upsetplot'
 
 	def register_events(self):
 		self.widgets.contrasts.set_selection(self.dataset)
@@ -514,27 +508,30 @@ class RNASuiteDegsUpsetPlotParameterDialog(RNASuiteParameterDialog):
 	@classmethod
 	def get_preset_datas(self, parent):
 		deparam = parent.global_params.get('degs', {})
-		defines = parent.global_params.get(self.pname, {})
+		defines = parent.global_params.get(self.name, {})
 		compare = deparam['compare']
 		groups = parent.input_list.get_groups()
 		dataset = groups[compare]
-		return deparam, defines, dataset
+		return defines, dataset
+
+class RNASuiteDegsVolcanoPlotParameterDialog(RNASuiteParameterDialog):
+	parameters = RNASuiteDegsVolcanoPlotParameters
+	title = "DEGs Volcano Plot"
+	name = 'deg_volcanoplot'
 
 	@classmethod
-	def get_params(cls, parent=None):
-		deparam, defines, dataset = cls.get_preset_datas(parent)
-		dlg = cls(parent, defines, dataset)
+	def get_preset_datas(self, parent):
+		deparam = parent.global_params.get('degs', {})
+		defines = parent.global_params.get(self.name, {})
+		compare = deparam['compare']
+		groups = parent.input_list.get_groups()
+		dataset = groups[compare]
+		return defines, dataset
 
-		if dlg.exec() == QDialog.Accepted:
-			params = dlg.get_param_values()
-			params['tool'] = deparam['tool']
-			params['fdr'] = deparam['fdr']
-			params['logfc'] = deparam['logfc']
-			params['compare'] = deparam['compare']
-			parent.global_params[dlg.pname] = params
-			return params
-
-class RNASuiteDEGVolcanoPlotParameterDialog(RNASuiteParameterDialog):
-	parameters = RNASuiteDEGVolcanoPlotParameters
-	title = "DEG Volcano Plot"
+	def register_events(self):
+		groups = list(map(str, self.dataset))
+		self.widgets.control.clear()
+		self.widgets.control.addItems(groups)
+		self.widgets.treatment.clear()
+		self.widgets.treatment.addItems(groups)
 

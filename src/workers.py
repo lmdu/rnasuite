@@ -7,10 +7,13 @@ from PySide6.QtCore import *
 
 from utils import *
 
-__all__ = ['RNASuiteEdgerIdentifyWorker', 'RNASuiteDeseqIdentifyWorker',
-	'RNASuiteDeseqExtractWorker', 'RNASuiteEdgerExtractWorker',
-	'RNASuiteDegsDistPlotWorker', 'RNASuiteDegsVennPlotWorker',
-	'RNASuiteDEGVolcanoPlotWorker',
+__all__ = [
+	'RNASuiteEdgerIdentifyWorker',
+	'RNASuiteDeseqIdentifyWorker',
+	'RNASuiteDegsExtractWorker',
+	'RNASuiteDegsDistPlotWorker',
+	'RNASuiteDegsVennPlotWorker',
+	'RNASuiteDegsVolcanoPlotWorker',
 	'RNASuiteDEGUpsetPlotWorker',
 ]
 
@@ -67,43 +70,21 @@ class RNASuiteDeseqIdentifyWorker(RNASuiteBaseWorker):
 	script = 'R/deseq.R'
 	function = 'rnasuite_deseq_find_degs'
 
-class RNASuiteDeseqExtractWorker(RNASuiteBaseWorker):
-	function = 'rnasuite_deseq_extract_degs'
+class RNASuiteDegsExtractWorker(RNASuiteBaseWorker):
+	script = 'R/extract.R'
+	function = 'rnasuite_generic_extract_degs'
 
 class RNASuiteEdgerIdentifyWorker(RNASuiteBaseWorker):
 	script = 'R/edger.R'
 	function = 'rnasuite_edger_find_degs'
 
-class RNASuiteEdgerExtractWorker(RNASuiteBaseWorker):
-	function = 'rnasuite_edger_extract_degs'
-
 class RNASuiteDegsDistPlotWorker(RNASuiteBaseWorker):
 	script = 'R/distplot.R'
 	function = 'rnasuite_degs_dist_plot_run'
 
-class RNASuiteDEGVolcanoPlotWorker(RNASuiteBaseWorker):
+class RNASuiteDegsVolcanoPlotWorker(RNASuiteBaseWorker):
 	script = 'R/volcanoplot.R'
-	function = 'rnasuite_degs_volcano_plot'
-
-	@property
-	def data(self):
-		return {
-			'volcanoplot_tool': self.params['tool'],
-			'volcanoplot_top': self.params['top'],
-			'volcanoplot_line': self.params['line'],
-			'volcanoplot_gname': self.params['gname'],
-			'volcanoplot_gnsep': self.params['gnsep'],
-			'volcanoplot_gncol': self.params['gncol'],
-			'volcanoplot_limit': self.params['limit'],
-			'volcanoplot_colors': [self.params['ncolor'], self.params['ucolor'], self.params['dcolor']]
-		}
-
-	def run(self):
-		self.submit({
-			'action': 'call',
-			'rtype': 'plot',
-			'func': 'degs_volcano_plot'
-		})
+	function = 'rnasuite_degs_volcano_plot_run'
 
 class RNASuiteDegsVennPlotWorker(RNASuiteBaseWorker):
 	script = 'R/vennplot.R'
