@@ -29,6 +29,7 @@ class RNASuiteMainWindow(QMainWindow):
 
 		self.global_params = {}
 
+		self.create_main_widget()
 		self.create_input_dock()
 		self.create_plot_dock()
 		self.create_output_dock()
@@ -632,22 +633,29 @@ class RNASuiteMainWindow(QMainWindow):
 		self.output_dock.setWidget(self.output_list)
 		self.addDockWidget(Qt.LeftDockWidgetArea, self.output_dock)
 
-	def create_plot_dock(self):
+	def create_main_widget(self):
+		self.data_table = RNASuitePandasTable(self)
 		self.plot_viewer = RNASuitePlotViewer(self)
 		self.plot_viewer.error.connect(self.show_error_message)
-		#self.plot_viewer.connect()
+		self.main_tabs = QTabWidget(self)
+		self.main_tabs.addTab(self.data_table, "Table")
+		self.main_tabs.addTab(self.plot_viewer, "Plot")
+		self.setCentralWidget(self.main_tabs)
+
+	def create_plot_dock(self):
 		self.plot_stack = RNASuitePlotStackedWidget(self)
 		self.plot_dock = QDockWidget("Plot", self)
 		#self.plot_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
 		self.plot_dock.setAllowedAreas(Qt.RightDockWidgetArea)
 		self.plot_dock.setWidget(self.plot_stack)
 		self.addDockWidget(Qt.RightDockWidgetArea, self.plot_dock)
-		self.setCentralWidget(self.plot_viewer)
+		
 
 	@Slot()
 	def _on_show_table_data(self, data):
-		dlg = RNASuiteShowPandasDataDialog(self, data)
-		dlg.exec()
+		#dlg = RNASuiteShowPandasDataDialog(self, data)
+		#dlg.exec()
+		self.data_table.update_data(data)
 
 	@Slot(str)
 	def show_warn_message(self, warn):

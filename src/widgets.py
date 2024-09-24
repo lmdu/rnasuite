@@ -290,7 +290,7 @@ class RNASuiteInputListWidget(QListWidget):
 		self.parent = parent
 		self.setIconSize(QSize(28, 28))
 		self.setSpacing(2)
-		self.itemDoubleClicked.connect(self._on_open_table)
+		self.itemClicked.connect(self._on_open_table)
 
 	def sizeHint(self):
 		return QSize(200, 200)
