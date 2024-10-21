@@ -182,7 +182,7 @@ class RNASuitePackageManagerDialog(QDialog):
 		self.progress = RNASuiteWaitingSpinner(self)
 		self.progress.hide()
 		spacer = RNASuiteSpacerWidget(self)
-		self.update_btn = QPushButton("Update", self)
+		self.update_btn = QPushButton("Refresh", self)
 		self.update_btn.setIcon(QIcon('icons/update.svg'))
 		self.package_manager = RNASuitePackageTreeView(self)
 		self.update_btn.clicked.connect(self.on_update_status)

@@ -59,6 +59,8 @@ def format_number_display(num):
 		return str(num)
 
 def compare_version(ver1, ver2):
+	#ver1 is required version
+	#ver2 is current version
 	if not ver2:
 		return 0
 
@@ -74,7 +76,7 @@ def compare_version(ver1, ver2):
 
 		if v2 > v1:
 			return 1
-		elif v1 < v2:
+		elif v2 < v1:
 			return -1
 
 def convert_dataframe_to_dict(data):
@@ -90,4 +92,4 @@ def convert_dict_to_dataframe(data):
 		return data
 
 if __name__ == '__main__':
-	print(get_unused_port())
+	print(compare_version('2.0.2', '1.3.1'))

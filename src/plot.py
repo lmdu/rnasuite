@@ -1,6 +1,7 @@
 import json
 import time
 
+from PySide6.QtSvg import *
 from PySide6.QtGui import *
 from PySide6.QtCore import *
 from PySide6.QtWidgets import *
@@ -13,244 +14,9 @@ from config import *
 from params import *
 from widgets import *
 
-__all__ = ['RNASuitePlotViewer', 'RNASuitePlotStackedWidget']
-
-class RNASuitePlotViewer(QWidget):
-	error = Signal(str)
-
-	def __init__(self, parent=None):
-		super().__init__(parent)
-		self.parent = parent
-
-		self.plot_id = 0
-		self.plot_num = 0
-		self.plot_zoom = 1.0
-
-		self.tool = QToolBar(self)
-		self.tool.setIconSize(QSize(16, 16))
-		self.plot_label = QLabel("{} / {}".format(self.plot_id, self.plot_num), self)
-		self.zoom_label = QLabel("{:.1f}".format(self.plot_zoom), self)
-
-		self.view = QSvgWidget(self)
-		layout = QVBoxLayout()
-		layout.setContentsMargins(0, 0, 0, 0)
-		#layout.addWidget(self.tool)
-		layout.addWidget(self.view)
-		self.setLayout(layout)
-
-		self.socket = QWebSocket()
-		self.socket.error.connect(self.on_error_occurred)
-		self.socket.connected.connect(self.on_connected)
-		self.socket.disconnected.connect(self.on_disconnected)
-		self.socket.textMessageReceived.connect(self.on_text_received)
-		#self.connect()
-
-		self.manager = QNetworkAccessManager(self)
-		self.manager.finished.connect(self.on_request_finished)
-
-		self.create_actions()
-
-	def create_actions(self):
-		actions = [
-			self.plot_label,
-			('icons/prev.svg', 'Show previous plot', self.display_prev_plot),
-			('icons/next.svg', 'Show next plot', self.display_next_plot),
-			None,
-			self.zoom_label,
-			('icons/zoomin.svg', 'Zoom in', self.zoom_plot_in),
-			('icons/zoomout.svg', 'Zoom out', self.zoom_plot_out),
-			None,
-			('icons/delete.svg', 'Remove current plot', self.remove_current_plot),
-			('icons/clear.svg', 'Remove all plots', self.remove_all_plots),
-			None,
-			('icons/save.svg', 'Save plot to file', self.save_plot_file)
-		]
-
-		for item in actions:
-			if item is None:
-				self.tool.addSeparator()
-
-			elif isinstance(item, QWidget):
-				self.tool.addWidget(item)
-
-			else:
-				icon, text, func = item
-				action = QAction(QIcon(icon), text, self)
-				action.triggered.connect(func)
-				self.tool.addAction(action)
-
-	def resizeEvent(self, event):
-		self.redraw_plot(index=-1)
-
-	@Slot()
-	def on_connected(self):
-		pass
-
-	@Slot()
-	def on_disconnected(self):
-		pass
-
-	@Slot()
-	def connect_to_socket(self):
-		url = QUrl("ws://localhost:{}".format(RNASUITE_PORT))
-		self.socket.open(url)
-
-	def disconnect_to_socket(self):
-		self.socket.close()
-
-	def zoom_plot_in(self):
-		if not self.plot_num:
-			return
-
-		self.plot_zoom += 0.2
-
-		if self.plot_zoom > 10:
-			self.plot_zoom = 10
-
-		self.redraw_plot()
-
-		self.zoom_label.setText("{:.1f}".format(self.plot_zoom))
-
-	def zoom_plot_out(self):
-		if not self.plot_num:
-			return
-
-		self.plot_zoom -= 0.2
-
-		if self.plot_zoom < 0.1:
-			self.plot_zoom = 0.2
-
-		self.redraw_plot()
-		self.zoom_label.setText("{:.1f}".format(self.plot_zoom))
-
-	def remove_current_plot(self):
-		pass
-
-	def remove_all_plots(self):
-		pass
-
-	def display_prev_plot(self):
-		self.plot_id -= 1
-
-		if self.plot_id < 0:
-			self.plot_id = 0
-
-		self.redraw_plot()
-
-	def display_next_plot(self):
-		self.plot_id += 1
-
-		if self.plot_id == self.plot_num:
-			self.plot_id = self.plot_num - 1
-
-		self.redraw_plot()
-
-	def save_plot_file(self):
-		pass
-
-	def remove_plot(self, static_id):
-		#return static_id
-		url = QUrl("http://localhost:{}/remove".format(RNASUITE_PORT))
-		query = QUrlQuery()
-		query.addQueryItem('token', RNASUITE_TOKEN)
-		query.addQueryItem('id', str(static_id))
-		url.setQuery(query)
-		request = QNetworkRequest()
-		request.setUrl(url)
-		self.manager.get(request)
-
-		#self.parent.pyconn.send({
-		#	'action': 'remove',
-		#	'params': {'page': plot_id+1}
-		#})
-
-	def show_plot(self, static_id):
-		self.redraw_plot(static_id=static_id)
-
-	def get_plot(self, **kwargs):
-		url = QUrl("http://localhost:{}/plot".format(RNASUITE_PORT))
-		query = QUrlQuery()
-		query.addQueryItem('token', RNASUITE_TOKEN)
-		query.addQueryItem('renderer', 'svgp')
-
-		for k, v in kwargs.items():
-			query.addQueryItem(k, str(v))
-
-		url.setQuery(query)
-		request = QNetworkRequest()
-		request.setUrl(url)
-		self.manager.get(request)
-
-		#kwargs['renderer'] = 'svgp'
-		#self.parent.pyconn.send({
-		#	'action': 'plot',
-		#	'params': kwargs
-		#})
-
-	@Slot()
-	def on_error_occurred(self, error):
-		self.error.emit(str(error))
-
-	@Slot()
-	def redraw_plot(self, index=None, static_id=None):
-		if not self.plot_num:
-			return
-
-		size = self.size()
-		width = int(size.width() * 0.95)
-		height = int(size.height() * 0.95)
-
-		if static_id is not None:
-			self.get_plot(
-				id = static_id,
-				#page = self.plot_id + 1,
-				zoom = self.plot_zoom,
-				width = width,
-				height = height
-			)
-
-		elif index is not None:
-			self.get_plot(
-				index = index,
-				zoom = self.plot_zoom,
-				width = width,
-				height = height
-			)
-
-		self.plot_label.setText("{} / {}".format(self.plot_id+1, self.plot_num))
-
-	@Slot()
-	def on_text_received(self, text):
-		data = json.loads(text)
-
-		#if data['hsize'] > self.plot_num:
-		#	self.plot_num = data['hsize']
-		#	last_id = self.plot_num - 1
-
-		#	print(last_id)
-		self.plot_num = data['hsize']
-		self.redraw_plot(index=-1)
-
-	@Slot()
-	def update_image(self, svg):
-		if isinstance(svg, QByteArray):
-			self.view.load(svg)
-		else:
-			self.view.load(QByteArray(svg))
-
-	@Slot()
-	def on_request_finished(self, reply):
-		if reply.url().path() == '/remove':
-			return
-
-		if reply.error() == QNetworkReply.NoError:
-			data = reply.readAll()
-			self.update_image(data)
-
-		else:
-			self.error.emit(reply.errorString())
-
-		reply.deleteLater()
+__all__ = [
+	'RNASuitePlotViewer',
+]
 
 class RNASuitePlotControlPanel(QWidget):
 	parameters = None
@@ -464,21 +230,13 @@ class RNASuiteDegsVolcanoPlotControlPanel(RNASuitePlotControlPanel):
 			'Theme': ['theme_name', 'base_size']
 		}
 
-class RNASuitePlotStackedWidget(QStackedWidget):
+class RNASuitePlotController(QStackedWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.parent = parent
 		self.panel_mapping = {}
 
 		self.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
-		#self.setStyleSheet("background-color: white;")
-
-		#self.panel_stacks = QStackedWidget(self)
-		#self.setWidget(self.panel_stacks)
-
-		#self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-		#self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-		#self.setWidgetResizable(True)
 
 	def sizeHint(self):
 		return QSize(200, 10)
@@ -514,3 +272,285 @@ class RNASuitePlotStackedWidget(QStackedWidget):
 
 		self.setCurrentIndex(index)
 		self.widget(index).set_plot(rid, pyid)
+
+class RNASuitePlotViewer(QWidget):
+	error = Signal(str)
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.parent = parent
+
+		self.plot_id = -1
+		self.plot_num = 0
+		self.plot_zoom = 1.0
+		self.plot_width = 800
+		self.plot_height = 600
+		self.aspect_ratio = 0
+
+		self.tool_bar = QToolBar(self)
+		self.tool_bar.setIconSize(QSize(16, 16))
+		
+		self.zoom_label = QLabel("{:.1f}".format(self.plot_zoom), self)
+		
+		self.width_spin = QSpinBox(self)
+		self.width_spin.setRange(1, 10000)
+		self.width_spin.setValue(800)
+		self.width_spin.setSingleStep(10)
+		self.width_spin.valueChanged.connect(self.on_width_changed)
+		self.width_spin.editingFinished.connect(self.redraw_plot)
+		
+		self.height_spin = QSpinBox(self)
+		self.height_spin.setRange(1, 10000)
+		self.height_spin.setValue(600)
+		self.height_spin.setSingleStep(10)
+		self.height_spin.valueChanged.connect(self.on_height_changed)
+		self.height_spin.editingFinished.connect(self.redraw_plot)
+		
+		#self.ratio_check = QPushButton(self)
+		#self.ratio_check.setCheckable(True)
+		#self.ratio_check.setIcon(QIcon('icons/link.svg'))
+		#self.ratio_check.toggled.connect(self.on_aspect_ratio_changed)
+
+		#self.view = QSvgWidget(self)
+		#self.plot_render = QSvgRenderer('icons/logo.svg')
+		#self.plot_view = QGraphicsView()
+		#self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		#self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+		#self.view.setDragMode(QGraphicsView.ScrollHandDrag)
+		#self.plot_scene = QGraphicsScene()
+		#self.plot_view.setScene(self.plot_scene)
+
+		#self.plot_item = QGraphicsSvgItem()
+		#self.plot_item.setFlags(QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable)
+		#self.plot_item.setSharedRenderer(self.plot_render)
+		#self.plot_scene.addItem(self.plot_item)
+		self.plot_render = QSvgWidget(self)
+		self.plot_view = QScrollArea(self)
+		self.plot_view.setAlignment(Qt.AlignCenter)
+		self.plot_view.setWidgetResizable(True)
+		#self.plot_view.setBackgroundRole(QPalette.Light)
+		self.plot_view.setWidget(self.plot_render)
+		palette = self.plot_view.palette()
+		palette.setColor(QPalette.Window, Qt.white)
+		self.plot_view.setPalette(palette)
+
+		self.plot_control = RNASuitePlotController(self)
+		self.show_panel = self.plot_control.show_panel
+
+		self.plot_split = QSplitter(self)
+		self.plot_split.addWidget(self.plot_view)
+		self.plot_split.addWidget(self.plot_control)
+		self.plot_split.setStretchFactor(0, 1)
+
+		layout = QVBoxLayout()
+		layout.setContentsMargins(0, 0, 0, 0)
+		layout.addWidget(self.tool_bar)
+		layout.addWidget(self.plot_split)
+		self.setLayout(layout)
+
+		self.socket = QWebSocket()
+		self.socket.error.connect(self.on_error_occurred)
+		self.socket.connected.connect(self.on_connected)
+		self.socket.disconnected.connect(self.on_disconnected)
+		self.socket.textMessageReceived.connect(self.on_text_received)
+		#self.connect()
+
+		self.manager = QNetworkAccessManager(self)
+		self.manager.finished.connect(self.on_request_finished)
+
+		self.create_actions()
+
+
+	def create_actions(self):
+		actions = [
+			QLabel("Scale:", self),
+			self.zoom_label,
+			('icons/zoomin.svg', 'Zoom in', self.zoom_plot_in, False),
+			('icons/zoomout.svg', 'Zoom out', self.zoom_plot_out, False),
+			None,
+			QLabel("Width:", self),
+			self.width_spin,
+			('icons/link.svg', 'Keep aspect ratio', self.on_aspect_ratio_changed, True),
+			QLabel("Height:", self),
+			self.height_spin,
+			None,
+			('icons/save.svg', 'Save plot to file', self.save_plot_file, False)
+		]
+
+		spacer = QWidget()
+		spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+		self.tool_bar.addWidget(spacer)
+
+		for item in actions:
+			if item is None:
+				self.tool_bar.addSeparator()
+
+			elif isinstance(item, QWidget):
+				self.tool_bar.addWidget(item)
+
+			else:
+				icon, text, func, toggle = item
+				action = QAction(QIcon(icon), text, self)
+				action.triggered.connect(func)
+				action.setCheckable(toggle)
+				self.tool_bar.addAction(action)
+
+	#def resizeEvent(self, event):
+	#	self.redraw_plot(index=-1)
+
+	@Slot()
+	def on_aspect_ratio_changed(self, checked):
+		if checked:
+			self.aspect_ratio = self.width_spin.value()/self.height_spin.value()
+		else:
+			self.aspect_ratio = 0
+
+	@Slot()
+	def on_width_changed(self, width):
+		if self.aspect_ratio > 0:
+			height = int(width/self.aspect_ratio)
+
+			with QSignalBlocker(self.height_spin):
+				self.height_spin.setValue(height)
+
+			self.plot_height = height
+
+		self.plot_width = width
+
+	@Slot()
+	def on_height_changed(self, height):
+		if self.aspect_ratio > 0:
+			width = int(height * self.aspect_ratio)
+
+			with QSignalBlocker(self.width_spin):
+				self.width_spin.setValue(width)
+
+			self.plot_width = width
+
+		self.plot_height = height
+
+	@Slot()
+	def on_connected(self):
+		pass
+
+	@Slot()
+	def on_disconnected(self):
+		pass
+
+	@Slot()
+	def connect_to_socket(self):
+		url = QUrl("ws://localhost:{}".format(RNASUITE_PORT))
+		self.socket.open(url)
+
+	def disconnect_to_socket(self):
+		self.socket.close()
+
+	def zoom_plot_in(self):
+		if not self.plot_num:
+			return
+
+		self.plot_zoom += 0.2
+
+		if self.plot_zoom > 10:
+			self.plot_zoom = 10
+
+		self.redraw_plot()
+
+		self.zoom_label.setText("{:.1f}".format(self.plot_zoom))
+
+	def zoom_plot_out(self):
+		if not self.plot_num:
+			return
+
+		self.plot_zoom -= 0.2
+
+		if self.plot_zoom < 0.1:
+			self.plot_zoom = 0.2
+
+		self.redraw_plot()
+		self.zoom_label.setText("{:.1f}".format(self.plot_zoom))
+
+	def save_plot_file(self):
+		pass
+
+	def remove_plot(self, static_id):
+		#return static_id
+		url = QUrl("http://localhost:{}/remove".format(RNASUITE_PORT))
+		query = QUrlQuery()
+		query.addQueryItem('token', RNASUITE_TOKEN)
+		query.addQueryItem('id', str(static_id))
+		url.setQuery(query)
+		request = QNetworkRequest()
+		request.setUrl(url)
+		self.manager.get(request)
+
+	def get_plot(self, **kwargs):
+		url = QUrl("http://localhost:{}/plot".format(RNASUITE_PORT))
+		query = QUrlQuery()
+		query.addQueryItem('token', RNASUITE_TOKEN)
+		query.addQueryItem('renderer', 'svgp')
+		query.addQueryItem('id', str(self.plot_id))
+		query.addQueryItem('zoom', str(self.plot_zoom))
+		query.addQueryItem('width', str(self.plot_width))
+		query.addQueryItem('height', str(self.plot_height))
+
+		for k, v in kwargs.items():
+			query.addQueryItem(k, str(v))
+
+		url.setQuery(query)
+		request = QNetworkRequest()
+		request.setUrl(url)
+		self.manager.get(request)
+
+	@Slot()
+	def on_error_occurred(self, error):
+		self.error.emit(str(error))
+
+	@Slot()
+	def show_plot(self, static_id):
+		self.plot_id = static_id
+		self.get_plot()
+
+	@Slot()
+	def redraw_plot(self):
+		#self.get_plot(index = -1)
+		self.get_plot()
+
+	@Slot()
+	def on_text_received(self, text):
+		data = json.loads(text)
+		self.plot_num = data['hsize']
+		self.redraw_plot()
+
+	@Slot()
+	def update_image(self, svg):
+		if not isinstance(svg, QByteArray):
+			svg = QByteArray(svg)
+
+		self.plot_render.load(svg)
+		self.plot_render.setFixedSize(self.plot_render.renderer().defaultSize())
+		#self.plot_item.setSharedRenderer(self.plot_render)
+		#self.plot_item.update()
+
+
+		#self.plot_item.setSharedRenderer(self.plot_render)
+		#item = QGraphicsSvgItem()
+		#item.setFlags(QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable)
+		#item.setSharedRenderer(self.render)
+		#self.scene.clear()
+		#self.scene.addItem(item)
+
+	@Slot()
+	def on_request_finished(self, reply):
+		if reply.url().path() == '/remove':
+			return
+
+		if reply.error() == QNetworkReply.NoError:
+			data = reply.readAll()
+			self.update_image(data)
+
+		else:
+			self.error.emit(reply.errorString())
+
+		reply.deleteLater()
+

@@ -104,7 +104,7 @@ rnasuite_degs_volcano_plot_update <- function(id=NULL, data=NULL, name=NULL, top
 	}
 
 	show(p)
-	new <- as.integer(hgd_id()$id)
+	new <- as.integer(unigd::ugd_id()$id)
 	rnasuite_put_plot(id, new, name, p, data)
 	out <- list(c(1, name, new, 'deg_volcanoplot'))
 	return(out)

@@ -6,14 +6,14 @@ QToolBar{
 	spacing: 8px;
 }
 
-QTableView {
+/*QTableView {
 	alternate-background-color: #f2f2f2;
 	selection-background-color: #2f2f2f;
 }
 
 QTableView::Item {
 	outline: 0;
-}
+}*/
 
 QHeaderView {
 }
@@ -36,5 +36,7 @@ RNASuiteAccordionHeader {
 	text-align: left;
 	background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ffffff, stop: 1 #f2f2f2);
 	border: 1px solid #a9a9a9;
-	border-radius: 3px;
+	border-radius: 5px;
+	padding-top: 2px;
+	padding-bottom: 2px;
 }

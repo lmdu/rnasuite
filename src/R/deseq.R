@@ -69,7 +69,7 @@ rnasuite_deseq_find_degs <- function(counts, samples, fdr, logfc, design, compar
 	normal_count = deseq_normalized_counts()
 	plotMA(degs)
 	plot <- recordPlot()
-	new <- as.integer(hgd_id()$id)
+	new <- as.integer(unigd::ugd_id()$id)
 	name <- paste(treatment, 'vs', control, 'MA plot')
 	old <- rnasuite_get_id(name)
 	rnasuite_put_plot(old, new, name, plot, degs)
@@ -95,7 +95,7 @@ rnasuite_deseq_extract_degs <- function(treatment, control, ...) {
 	degs_list = r_to_py(deseq_sig_degs(degs))
 	plotMA(degs)
 	plot <- recordPlot()
-	new <- as.integer(hgd_id()$id)
+	new <- as.integer(unigd::ugd_id()$id)
 	name <- paste(treatment, 'vs', control, 'MA plot')
 	old <- rnasuite_get_id(name)
 
@@ -117,7 +117,7 @@ rnasuite_deseq_ma_plot_update <- function(id=NULL, ...) {
 
 	plotMA(data, ...)
 	plot <- recordPlot()
-	new = as.integer(hgd_id()$id)
+	new = as.integer(unigd::ugd_id()$id)
 	rnasuite_put_plot(id, new, name, plot, data)
 	out <- list(c(1, name, new, 'deseq_maplot'))
 	return(out)

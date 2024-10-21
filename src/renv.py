@@ -6,7 +6,8 @@ import multiprocessing
 
 import pandas
 import rchitect
-from rchitect.interface import set_hook, package_event, peek_event, process_events, polled_events
+from rchitect.interface import set_hook, package_event, \
+	peek_event, process_events, polled_events
 
 from PySide6.QtCore import *
 
@@ -80,7 +81,7 @@ class RNASuiteREnvironment(multiprocessing.Process):
 		#start httpgd server
 		try:
 			rchitect.rcall('hgd',
-				silent = True,
+				silent = False,
 				port = self.port,
 				token = self.token
 			)
@@ -146,6 +147,7 @@ class RNASuiteREnvironment(multiprocessing.Process):
 							rchitect.rcall('send_val_to_r', data['variable'], data['value'])
 
 					case 'call':
+						print(data['func'])
 						ret = rchitect.rcopy(rchitect.rcall(data['func'], **data['params']))
 
 						if isinstance(ret, pandas.DataFrame):
@@ -167,11 +169,11 @@ class RNASuiteREnvironment(multiprocessing.Process):
 						rchitect.reval(data['code'])
 
 					case 'plot':
-						ret = rchitect.rcopy(rchitect.rcall('hgd_plot', **data['params']))
+						ret = rchitect.rcopy(rchitect.rcall('unigd::ugd_render', **data['params']))
 						self.send('plot', ret)
 
 					case 'remove':
-						rchitect.rcall('hgd_remove', **data['params'])
+						rchitect.rcall('unigd::ugd_remove', **data['params'])
 
 			except:
 				self.send('error', traceback.format_exc())

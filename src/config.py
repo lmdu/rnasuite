@@ -32,7 +32,7 @@ class RNASuitePackages(ClassDict):
 	_orders = ['Base', 'DEG', 'PCA', 'Enrichment', 'Plot', 'Annotation']
 	Base = [
 		RNASuitePackage('R', "R is a free software environment for statistical computing and graphics", 'CRAN', '4.3.2'),
-		RNASuitePackage('httpgd', "A graphics device for R that is accessible via network protocols", 'CRAN', '1.3.1'),
+		RNASuitePackage('httpgd', "A graphics device for R that is accessible via network protocols", 'CRAN', '2.0.2'),
 		RNASuitePackage('reticulate', "Interface to Python modules, classes, and functions", 'CRAN', '1.34.0')
 	]
 	DEG = [

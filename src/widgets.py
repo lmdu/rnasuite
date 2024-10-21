@@ -14,15 +14,24 @@ from models import *
 from config import *
 from threads import *
 
-__all__ = ['create_parameter_widget', 'set_parameter_widget_value',
+__all__ = [
+	'create_parameter_widget',
+	'set_parameter_widget_value',
 	'get_parameter_widget_value',
-	'RNASuiteInputListWidget', 'RNASuiteOutputTreeWidget',
-	'RNASuitePackageInstallButton', 'RNASuiteWaitingSpinner',
-	'RNASuitePackageTreeView', 'RNASuitePackageInstallMessage',
-	'RNASuiteSpacerWidget', 'RNASuiteMultipleSelect',
-	'RNASuiteRGeneralSettingPage', 'RNASuiteColorButton',
-	'RNASuiteContrastVersusWidget', 'RNASuiteColorGroups',
-	'RNASuiteAccordionWidget', 'RNASuiteAxisLimitWidget'
+	'RNASuiteInputListWidget',
+	'RNASuiteOutputTreeWidget',
+	'RNASuitePackageInstallButton',
+	'RNASuiteWaitingSpinner',
+	'RNASuitePackageTreeView',
+	'RNASuitePackageInstallMessage',
+	'RNASuiteSpacerWidget',
+	'RNASuiteMultipleSelect',
+	'RNASuiteRGeneralSettingPage',
+	'RNASuiteColorButton',
+	'RNASuiteContrastVersusWidget',
+	'RNASuiteColorGroups',
+	'RNASuiteAccordionWidget',
+	'RNASuiteAxisLimitWidget'
 ]
 
 def create_parameter_widget(param):
@@ -230,7 +239,7 @@ class RNASuiteAccordionItem(QWidget):
 		self.setLayout(self.main_layout)
 
 		self.content_layout = QVBoxLayout()
-		self.content_layout.setContentsMargins(0, 0, 0, 10)
+		self.content_layout.setContentsMargins(10, 0, 0, 10)
 		self.content.setLayout(self.content_layout)
 
 	def add_widgets(self, widgets):
@@ -384,7 +393,7 @@ class RNASuiteOutputTreeWidget(QTreeView):
 		self.rowid = 0
 		self.datasets = {}
 		self.setRootIsDecorated(False)
-		self.doubleClicked.connect(self._on_row_clicked)
+		self.clicked.connect(self._on_row_clicked)
 
 		self.create_model()
 

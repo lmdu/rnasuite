@@ -23,15 +23,15 @@ __all__ = ['RNASuiteMainWindow']
 class RNASuiteMainWindow(QMainWindow):
 	def __init__(self):
 		super().__init__()
-
+		self.setWindowIcon(QIcon('icons/logo.svg'))
 		self.setWindowTitle("RNASuite v{}".format(RNASUITE_VERSION))
 		self.pyconn, self.rconn = multiprocessing.Pipe()
 
 		self.global_params = {}
 
-		self.create_main_widget()
+		self.create_main_widgets()
 		self.create_input_dock()
-		self.create_plot_dock()
+		#self.create_plot_dock()
 		self.create_output_dock()
 
 		self.create_actions()
@@ -624,31 +624,36 @@ class RNASuiteMainWindow(QMainWindow):
 		#self.output_tabs = QTabWidget(self)
 		self.output_list = RNASuiteOutputTreeWidget(self)
 		self.output_list.show_table.connect(self._on_show_table_data)
-		self.output_list.show_plot.connect(self.plot_viewer.show_plot)
+		self.output_list.show_plot.connect(self._on_show_table_plot)
 		self.output_list.remove_plot.connect(self.plot_viewer.remove_plot)
-		self.output_list.show_panel.connect(self.plot_stack.show_panel)
+		self.output_list.show_panel.connect(self.plot_viewer.show_panel)
 		self.output_dock = QDockWidget("Output", self)
 		#self.output_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
 		self.output_dock.setAllowedAreas(Qt.LeftDockWidgetArea)
 		self.output_dock.setWidget(self.output_list)
 		self.addDockWidget(Qt.LeftDockWidgetArea, self.output_dock)
 
-	def create_main_widget(self):
+	def create_main_widgets(self):
 		self.data_table = RNASuitePandasTable(self)
 		self.plot_viewer = RNASuitePlotViewer(self)
 		self.plot_viewer.error.connect(self.show_error_message)
-		self.main_tabs = QTabWidget(self)
-		self.main_tabs.addTab(self.data_table, "Table")
-		self.main_tabs.addTab(self.plot_viewer, "Plot")
-		self.setCentralWidget(self.main_tabs)
+		#self.main_tabs = QTabWidget(self)
+		#self.main_tabs.addTab(self.data_table, "Table")
+		#self.main_tabs.addTab(self.plot_viewer, "Plot")
+		self.stack_widget = QStackedWidget(self)
+		self.stack_widget.addWidget(self.data_table)
+		self.stack_widget.addWidget(self.plot_viewer)
+		self.stack_widget.setCurrentIndex(1)
+		self.setCentralWidget(self.stack_widget)
+		#self.setCentralWidget(self.main_tabs)
 
-	def create_plot_dock(self):
-		self.plot_stack = RNASuitePlotStackedWidget(self)
-		self.plot_dock = QDockWidget("Plot", self)
+	#def create_plot_dock(self):
+		#self.plot_stack = RNASuitePlotStackedWidget(self)
+		#self.plot_dock = QDockWidget("Plot", self)
 		#self.plot_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-		self.plot_dock.setAllowedAreas(Qt.RightDockWidgetArea)
-		self.plot_dock.setWidget(self.plot_stack)
-		self.addDockWidget(Qt.RightDockWidgetArea, self.plot_dock)
+		#self.plot_dock.setAllowedAreas(Qt.RightDockWidgetArea)
+		#self.plot_dock.setWidget(self.plot_stack)
+		#self.addDockWidget(Qt.RightDockWidgetArea, self.plot_dock)
 		
 
 	@Slot()
@@ -656,6 +661,12 @@ class RNASuiteMainWindow(QMainWindow):
 		#dlg = RNASuiteShowPandasDataDialog(self, data)
 		#dlg.exec()
 		self.data_table.update_data(data)
+		self.stack_widget.setCurrentIndex(0)
+
+	@Slot()
+	def _on_show_table_plot(self, plot_id):
+		self.plot_viewer.show_plot(plot_id)
+		self.stack_widget.setCurrentIndex(1)
 
 	@Slot(str)
 	def show_warn_message(self, warn):
