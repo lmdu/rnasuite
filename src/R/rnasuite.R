@@ -1,47 +1,50 @@
 RNASUITE_PLOTS <- list()
-RNASUITE_DATAS <- list()
-RNASUITE_NAMES <- list()
+#RNASUITE_DATAS <- list()
+#RNASUITE_NAMES <- list()
 
 rnasuite_get_plot <- function(id) {
-	id <- as.character(id)
-	return(RNASUITE_PLOTS[[ id ]])
-}
-
-rnasuite_get_data <- function(id) {
-	id <- as.character(id)
-	return(RNASUITE_DATAS[[ id ]])
-}
-
-rnasuite_get_name <- function(id) {
-	id <- as.character(id)
-	return(RNASUITE_NAMES[[ id ]])
-}
-
-rnasuite_get_id <- function(name) {
-	id = names(which(RNASUITE_NAMES == name))
-
-	if (length(id) > 0) {
-		id = as.integer(id)
+	if (is.numeric(id)) {
+		id <- as.character(id)
+		plot <- RNASUITE_PLOTS[[ id ]]
 	} else {
-		id = NULL
+		res <- Filter(function(x) x$name == id, RNASUITE_PLOTS)
+		if (length(res) > 0) {
+			plot <- (res[[1]])
+		} else {
+			plot <- NULL
+		}
 	}
 
-	return(id)
+	return(plot)
+}
+
+rnasuite_del_plot <- function(id) {
+	id <- as.character(id)
+	RNASUITE_PLOTS[[ id ]] <<- NULL
 }
 
 rnasuite_put_plot <- function(old, new, name, plot, data) {
 	if (!is.null(old)) {
-		old <- as.character(old)
-		RNASUITE_PLOTS[[ old ]] <<- NULL
-		RNASUITE_DATAS[[ old ]] <<- NULL
-		RNASUITE_NAMES[[ old ]] <<- NULL
+		rnasuite_del_plot(old)
 	}
 
-	new <- as.character(new)
-	RNASUITE_NAMES[[ new ]] <<- name
-	RNASUITE_PLOTS[[ new ]] <<- plot
-	RNASUITE_DATAS[[ new ]] <<- data
+	index <- as.character(new)
+	RNASUITE_PLOTS[[ index ]] <<- list(
+		id = new,
+		name = name,
+		plot = plot,
+		data = data
+	)
 }
 
-#make plot id start from one
-plot.new()
+rnasuite_get_plot_id <- function() {
+	return(unigd::ugd_id()$id)
+}
+
+rnasuite_pandas_to_dataframe <- function(data) {
+	return(py_to_r(r_to_py(data)))
+}
+
+rnasuite_dataframe_to_pandas <- function(data) {
+	return(r_to_py(data))
+}

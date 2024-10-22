@@ -27,9 +27,7 @@ deseq_identify_degs <- function(read_counts, sample_info, design_formula) {
 	RNASUITE_DESEQ_RESULTS <<- DESeq(dds)
 }
 
-deseq_extract_degs <- function(contrast) {
-	fdr <- RNASUITE_FDR
-	logfc <- RNASUITE_LOGFC
+deseq_extract_degs <- function(fdr, logfc, contrast) {
 	degs <- results(RNASUITE_DESEQ_RESULTS,
 		alpha = fdr,
 		lfcThreshold = logfc,
@@ -38,9 +36,7 @@ deseq_extract_degs <- function(contrast) {
 	return(degs)
 }
 
-deseq_sig_degs <- function(degs) {
-	fdr <- RNASUITE_FDR
-	logfc <- RNASUITE_LOGFC
+deseq_sig_degs <- function(fdr, logfc, degs) {
 	sig_degs <- na.omit(degs)
 	sig_degs <- sig_degs[(sig_degs$padj < fdr & abs(sig_degs$log2FoldChange) >= logfc), ]
 	sig_degs <- sig_degs[order(sig_degs$padj), ]
@@ -54,7 +50,7 @@ deseq_normalized_counts <- function() {
 	return(norm_counts)
 }
 
-rnasuite_deseq_find_degs <- function(counts, samples, fdr, logfc, design, compare, treatment, control, ...) {
+rnasuite_deseq_find_degs <- function(counts=NULL, samples=NULL, fdr, logfc, design, compare, treatment, control, ...) {
 	RNASUITE_FDR <<- fdr
 	RNASUITE_LOGFC <<- logfc
 	RNASUITE_COMPARE <<- compare
