@@ -6,29 +6,29 @@
 #@param list deseq_contrast, results for which groups comparison
 library(DESeq2)
 
-deseq_identify_degs <- function(read_counts, sample_info, design_formula) {
+DeseqIdentifyDegs <- function(read.counts, sample.info, design.formula) {
 	#convert to dataframe
-	read_counts <- py_to_r(r_to_py(read_counts))
-	sample_info <- py_to_r(r_to_py(sample_info))
+	read.counts <- RnasuitePandasToDataframe(read.counts)
+	sample.info <- RnasuitePandasToDataframe(sample.info)
 
 	#convert to integer
-	read_counts <- round(read_counts)
+	read.counts <- round(read.counts)
 
 	#remove genes with expression of 0
-	read_counts <- read_counts[rowSums(read_counts[]) > 0, ]
-	read_counts <- read_counts[, rownames(sample_info)]
+	read.counts <- read.counts[rowSums(read.counts[]) > 0, ]
+	read.counts <- read.counts[, rownames(sample.info)]
 
 	suppressWarnings(dds <- DESeqDataSetFromMatrix(
-		countData = read_counts,
-		colData = sample_info,
-		design = as.formula(design_formula)
+		countData = read.counts,
+		colData = sample.info,
+		design = as.formula(design.formula)
 	))
 
-	RNASUITE_DESEQ_RESULTS <<- DESeq(dds)
+	RNASUITE.DESEQ.RESULTS <<- DESeq(dds)
 }
 
-deseq_extract_degs <- function(fdr, logfc, contrast) {
-	degs <- results(RNASUITE_DESEQ_RESULTS,
+DeseqExtractDegs <- function(fdr, logfc, contrast) {
+	degs <- results(RNASUITE.DESEQ.RESULTS,
 		alpha = fdr,
 		lfcThreshold = logfc,
 		contrast = contrast
@@ -36,49 +36,22 @@ deseq_extract_degs <- function(fdr, logfc, contrast) {
 	return(degs)
 }
 
-deseq_sig_degs <- function(fdr, logfc, degs) {
-	sig_degs <- na.omit(degs)
-	sig_degs <- sig_degs[(sig_degs$padj < fdr & abs(sig_degs$log2FoldChange) >= logfc), ]
-	sig_degs <- sig_degs[order(sig_degs$padj), ]
-	sig_degs <- as.data.frame(sig_degs)
-	return(sig_degs)
+DeseqGetSigificantDegs <- function(fdr, logfc, degs) {
+	sig.degs <- na.omit(degs)
+	sig.degs <- sig.degs[(sig.degs$padj < fdr & abs(sig.degs$log2FoldChange) >= logfc), ]
+	sig.degs <- sig.degs[order(sig.degs$padj), ]
+	sig.degs <- as.data.frame(sig.degs)
+	return(sig.degs)
 }
 
-deseq_normalized_counts <- function() {
-	norm_counts <- counts(RNASUITE_DESEQ_RESULTS, normalized=TRUE)
-	norm_counts <- r_to_py(as.data.frame(norm_counts))
-	return(norm_counts)
+DeseqGetNormalizedCounts <- function() {
+	norm.counts <- counts(RNASUITE.DESEQ.RESULTS, normalized=TRUE)
+	norm.counts <- as.data.frame(norm.counts)
+	norm.counts <- RnasuiteDataframeToPandas(norm.counts)
+	return(norm.counts)
 }
 
-rnasuite_deseq_find_degs <- function(counts=NULL, samples=NULL, fdr, logfc, design, compare, treatment, control, ...) {
-	RNASUITE_FDR <<- fdr
-	RNASUITE_LOGFC <<- logfc
-	RNASUITE_COMPARE <<- compare
-	RNASUITE_TREATMENT <<- treatment
-	RNASUITE_CONTROL <<- control
-	RNASUITE_DEGTOOL <<- 'deseq'
-
-	contrast <- c(compare, treatment, control)
-	deseq_identify_degs(counts, samples, design)
-	degs <- deseq_extract_degs(contrast)
-	degs_list = r_to_py(deseq_sig_degs(degs))
-	normal_count = deseq_normalized_counts()
-	plotMA(degs)
-	plot <- recordPlot()
-	new <- as.integer(unigd::ugd_id()$id)
-	name <- paste(treatment, 'vs', control, 'MA plot')
-	old <- rnasuite_get_id(name)
-	rnasuite_put_plot(old, new, name, plot, degs)
-
-	out <- list(
-		c(1, name, new, 'deseq_maplot'),
-		c(0, 'Gene normalized read counts', normal_count, 'table'),
-		c(0, paste(treatment, 'vs', control, 'DEGs list'), degs_list, 'table')
-	)
-	return(out)
-}
-
-rnasuite_deseq_extract_degs <- function(treatment, control, ...) {
+Rnasuite_deseq_extract_degs <- function(treatment, control, ...) {
 	RNASUITE_TREATMENT <<- treatment
 	RNASUITE_CONTROL <<- control
 
@@ -87,7 +60,7 @@ rnasuite_deseq_extract_degs <- function(treatment, control, ...) {
 	logfc <- RNASUITE_LOGFC
 	contrast <- c(compare, treatment, control)
 
-	degs <- deseq_extract_degs(contrast)
+	degs <- DeseqExtractDegs(fdr, logfc, contrast)
 	degs_list = r_to_py(deseq_sig_degs(degs))
 	plotMA(degs)
 	plot <- recordPlot()
@@ -101,6 +74,37 @@ rnasuite_deseq_extract_degs <- function(treatment, control, ...) {
 		c(1, name, new, 'deseq_maplot')
 	)
 	return(out)
+}
+
+RnasuiteDeseqFindDegs <- function(counts=NULL, samples=NULL, design=NULL, fdr,
+	logfc, compare, treatment, control, ...) {
+	contrast <- c(compare, treatment, control)
+	result <- list()
+
+	if (!is.null(counts)) {
+		DeseqIdentifyDegs(counts, samples, design)
+		normal.counts <- DeseqGetNormalizedCounts()
+		item <- list(type=0, name='Normalized read counts', data=normal.counts)
+		result <- append(result, item)
+	}
+
+	degs <- DeseqExtractDegs(fdr, logfc, contrast)
+	degs.list <- DeseqGetSigificantDegs(fdr, logfc, degs)
+	degs.list = RnasuiteDataframeToPandas(degs.list)
+
+	plotMA(degs)
+	plot <- recordPlot()
+	plot.id <- RnasuiteGetPlotCurrentId()
+	plot.name <- paste(treatment, 'vs', control, 'MA plot')
+	old.id <- RnasuiteGetPlotIdByName(plot.name)
+
+	RnasuiteSavePlot(old.id, plot.id, plot.name, degs)
+	item <- list(type=1, name=plot.name, id=plot.id, plot='deseq_maplot')
+	result <- append(result, item)
+	item <- list(type=0, name=paste(treatment, 'vs', control, 'DEGs list'), data=degs.list)
+	result <- append(result, item)
+
+	return(result)
 }
 
 rnasuite_deseq_ma_plot_update <- function(id=NULL, ...) {
