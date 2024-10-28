@@ -84,41 +84,57 @@ RnasuiteDeseqFindDegs <- function(counts=NULL, samples=NULL, design=NULL, fdr,
 	if (!is.null(counts)) {
 		DeseqIdentifyDegs(counts, samples, design)
 		normal.counts <- DeseqGetNormalizedCounts()
-		item <- list(type=0, name='Normalized read counts', data=normal.counts)
-		result <- append(result, item)
+		result[[length(result)+1]] <- list(
+			type = 'table',
+			name = 'Normalized read counts',
+			data = normal.counts,
+			code = 'normal_count'
+		)
 	}
 
 	degs <- DeseqExtractDegs(fdr, logfc, contrast)
 	degs.list <- DeseqGetSigificantDegs(fdr, logfc, degs)
 	degs.list = RnasuiteDataframeToPandas(degs.list)
+	result[[length(result)+1]] <- list(
+		type = 'table',
+		name = paste(treatment, 'vs', control, 'DEGs list'),
+		data = degs.list,
+		code = 'degs_list'
+	)
 
 	plotMA(degs)
 	plot <- recordPlot()
 	plot.id <- RnasuiteGetPlotCurrentId()
 	plot.name <- paste(treatment, 'vs', control, 'MA plot')
 	old.id <- RnasuiteGetPlotIdByName(plot.name)
-
-	RnasuiteSavePlot(old.id, plot.id, plot.name, degs)
-	item <- list(type=1, name=plot.name, id=plot.id, plot='deseq_maplot')
-	result <- append(result, item)
-	item <- list(type=0, name=paste(treatment, 'vs', control, 'DEGs list'), data=degs.list)
-	result <- append(result, item)
+	RnasuiteSavePlot(old.id, plot.id, plot.name, plot, degs)
+	result[[length(result)+1]] <- list(
+		type = 'plot',
+		name = plot.name,
+		data = plot.id,
+		code = 'deseq_maplot'
+	)
 
 	return(result)
 }
 
-rnasuite_deseq_ma_plot_update <- function(id=NULL, ...) {
-	name <- rnasuite_get_name(id)
-	data <- rnasuite_get_data(id)
+RnasuiteDeseqMaplotUpdate <- function(id=NULL, ...) {
+	chart = RnasuiteGetPlot(id)
 
-	if (is.null(data)) {
+	if (is.null(chart$data)) {
 		return(NULL)
 	}
 
-	plotMA(data, ...)
+	plotMA(chart$data, ...)
 	plot <- recordPlot()
-	new = as.integer(unigd::ugd_id()$id)
-	rnasuite_put_plot(id, new, name, plot, data)
-	out <- list(c(1, name, new, 'deseq_maplot'))
+	plot.id <- RnasuiteGetPlotCurrentId()
+	RnasuiteSavePlot(chart$id, plot.id, chart$name, plot, chart$data)
+
+	out <- list(list(
+		type = 'plot',
+		name = chart$name,
+		data = plot.id,
+		code = chart$code
+	))
 	return(out)
 }

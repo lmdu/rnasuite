@@ -84,8 +84,25 @@ class RNASuitePandasModel(QAbstractTableModel):
 		self._data = data
 		self.endResetModel()
 
-class RNASuiteOutputTreeModel(RNASuitePandasModel):
+class RNASuiteOutputTreeModel(QAbstractTableModel):
 	_headers = ['Name', '', 'plot', 'id', 'type', 'pyid']
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.name = {}
+		self.datasets = []
+
+	def rowCount(self, parent=QModelIndex()):
+		if parent == QModelIndex():
+			return len(self._data)
+
+		return 0
+
+	def columnCount(self, parent=QModelIndex()):
+		if parent == QModelIndex():
+			return len(self._data.columns)
+
+		return 0
 
 	def data(self, index, role=Qt.ItemDataRole):
 		if not index.isValid():
