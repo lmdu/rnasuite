@@ -3,7 +3,7 @@ import pandas
 
 __all__ = ['AttrDict', 'ClassDict', 'get_unused_port', 'format_number_display',
 	'RNASuiteError', 'RNASuiteTable', 'RNASuitePackage', 'compare_version',
-	'convert_dataframe_to_dict', 'convert_dict_to_dataframe'
+	'convert_dataframe_to_dict', 'convert_dict_to_dataframe', 'IndexedDict'
 ]
 
 class ClassDict:
@@ -24,6 +24,32 @@ class AttrDict(dict):
 
 	def __setattr__(self, attr, val):
 		self[attr] = val
+
+class IndexedDict:
+	def __init__(self):
+		self.datasets = []
+		self.mappings = {}
+
+	def __len__(self):
+		return len(self.datasets)
+
+	def __getitem__(self, key):
+		if isinstance(key, int):
+			return self.datasets[key]
+		else:
+			key = self.mappings[key]
+			return self.datasets[key]
+
+	def __setitem__(self, key, val):
+		self.datasets.append(val)
+		self.mappings[key] = len(self.datasets) - 1
+
+	def __getattr__(self, key):
+		key = self.mappings[key]
+		return self.datasets[key]
+
+	def __setattr__(self, key, val):
+		self[key] = val
 
 class RNASuiteTable(AttrDict):
 	def __init__(self, ttype, title):
@@ -92,4 +118,9 @@ def convert_dict_to_dataframe(data):
 		return data
 
 if __name__ == '__main__':
-	print(compare_version('2.0.2', '1.3.1'))
+	d = IndexedDict()
+	d['a'] = [1,2,3, 'a']
+	d['b'] = [1,3,4,'b']
+
+	print(d.a)
+	print(d['b'])

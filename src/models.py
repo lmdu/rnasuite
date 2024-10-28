@@ -89,8 +89,17 @@ class RNASuiteOutputTreeModel(QAbstractTableModel):
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
-		self.name = {}
-		self.datasets = []
+		self._data = IndexedDict()
+
+	def add_row(name, status, _type):
+		self._data[name] = AttrDict(
+			name = name,
+			type = _type,
+			status = status,
+		)
+
+	def update_status(name, status):
+		self._data[name].status = status
 
 	def rowCount(self, parent=QModelIndex()):
 		if parent == QModelIndex():
@@ -100,7 +109,7 @@ class RNASuiteOutputTreeModel(QAbstractTableModel):
 
 	def columnCount(self, parent=QModelIndex()):
 		if parent == QModelIndex():
-			return len(self._data.columns)
+			return len(self._headers)
 
 		return 0
 
@@ -113,27 +122,26 @@ class RNASuiteOutputTreeModel(QAbstractTableModel):
 
 		if role == Qt.DisplayRole:
 			if col == 0:
-				v = self._data.iloc[row, col]
-				return format_number_display(v)
+				v = self._data[row]
+				return v.name
 
 		elif role == Qt.DecorationRole:
 			if col == 0:
-				v = self._data.iloc[row, 2]
+				v = self._data[row]
 
-				if v:
+				if v.type == 'plot':
 					return QIcon('icons/chart.svg')
 
 				else:
 					return QIcon('icons/table.svg')
 
 			elif col == 1:
-				v = self._data.iloc[row, 1]
-				p = self._data.iloc[row, 2]
+				v = self._data[row]
 
-				if v and not p:
+				if v.type == 'table' and self.status:
 					return QIcon('icons/refresh.svg')
 
-				if v and p:
+				if v.type == 'plot' and self.status:
 					return QIcon('icons/dot.svg')
 
 		return None
