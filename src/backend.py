@@ -13,8 +13,32 @@ data_tables = {
 		'content TEXT'
 	],
 	'output': [
+		'id INTEGER PRIMARY KEY',
+		'name TEXT',
+		
 	]
 }
+
+class SqlTable:
+	@classmethod
+	def tables(cls):
+		ts = {int: 'INTEGER', float: 'REAL', str: 'TEXT'}
+		for c in cls.__subclasses__():
+			table = c.__name__.split('Table')[0].lower()
+			fields = ['id INTEGER PRIMARY KEY']
+			for attr in dir(c):
+				if not attr.startswith('__'):
+					t = getattr(c, attr)
+					fields.append("{} {}".format(attr, ts[t]))
+
+			yield table, fields
+
+class InputTable(SqlTable):
+	name = str
+	content = str
+
+class OutputTable(SqlTable):
+	name = str
 
 class SqlQuery:
 	def __init__(self, table):
@@ -65,6 +89,10 @@ class SqlQuery:
 		self._action = 'DELETE'
 		return self
 
+	def drop(self):
+		self._action = 'DROP'
+		return self
+
 	def where(self, *args, logic='and'):
 		if logic == 'and':
 			self._and_wheres.extend(args)
@@ -93,7 +121,7 @@ class SqlQuery:
 	def build(self):
 		match self._action:
 			case 'CREATE':
-				self.__add("TABLE ({})".format(','.join(self._creates)))
+				self.__add("TABLE IF NOT EXISTS ({})".format(','.join(self._creates)))
 
 			case 'SELECT':
 				if self._selects:
@@ -122,6 +150,10 @@ class SqlQuery:
 			case 'DELETE':
 				self.__add("FROM {}".format(self._table))
 
+			case 'DROP':
+				self.__add("TABLE IF EXISTS {}".format(self._table))
+
+
 		if self._and_wheres or self._or_wheres:
 			self.__add("WHERE")
 
@@ -146,7 +178,7 @@ class SqlQuery:
 		if self._offset:
 			self.__add("OFFSET {}".format(self._offset))
 
-		return ''.join(self._querys)
+		return ''.join(self._querys)	
 
 class DataBackend(QObject):
 	error = Signal(str)
@@ -165,6 +197,7 @@ class DataBackend(QObject):
 			self.conn.close()
 
 		self.conn = sqlite3.connect(file)
+		self.create_tables()
 
 	@property
 	def cursor(self):
@@ -178,6 +211,11 @@ class DataBackend(QObject):
 			return self.cursor.execute(str(sql), args)
 		else:
 			return self.cursor.execute(str(sql))
+
+	def create_tables(self):
+		for table, fields in SqlTable.tables():
+			sql = SqlQuery(table).create(*fields)
+			self.query(sql)
 
 	def get_one(self, sql, *args):
 		for row in self.query(sql, args):
