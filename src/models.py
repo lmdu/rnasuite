@@ -4,6 +4,7 @@ from PySide6.QtGui import *
 from PySide6.QtCore import *
 
 from utils import *
+from backend import *
 
 __all__ = ['RNASuitePandasModel', 'RNASuiteOutputTreeModel']
 
@@ -54,34 +55,33 @@ class RNASuitePandasModel(QAbstractTableModel):
 class RNASuiteSqliteTableModel(QAbstractTableModel):
 	row_count = Signal(int)
 	col_count = Signal(int)
-	header_name = []
-	table_name = None
+	_headers = []
+	_fields = []
+	_table = None
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
-		self.displays = []
-		self.selected = []
-		
-		self.total_count = 0
-		self.read_count = 0
-		self.read_size = 200
+		self._displays = []
+		self._selected = []
 
-		self.cache_data = {}
+		self._total_count = 0
+		self._read_count = 0
+		self._read_size = 200
+
+		self._cache_data = {}
 
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			return 0
 
-		return len(self.displays)
+		return len(self._displays)
 
 	def columnCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			return 0
 
-		count = len(self.header_name)
-		self.row_count.emit(count)
-		return count
+		return len(self._headers)
 
 	def data(self, index, role=Qt.DisplayRole):
 		if not index.isValid():
@@ -91,17 +91,17 @@ class RNASuiteSqliteTableModel(QAbstractTableModel):
 		col = index.column()
 
 		if role == Qt.DisplayRole:
-			return self.datasets[row][col]
+			return self.get_value(row, col)
 
 	def headerData(self, section, orientation, role=Qt.DisplayRole):
 		if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-			return self.header_title[section]
+			return self._headers[section]
 
 	def canFetchMore(self, parent):
 		if parent.isValid():
 			return False
 
-		if self.read_count < self.total_count:
+		if self._read_count < self._total_count:
 			return True
 
 		return False
@@ -110,70 +110,137 @@ class RNASuiteSqliteTableModel(QAbstractTableModel):
 		if parent.isValid():
 			return
 
-		ids = DB.get_column(self.read_sql)
+		ids = RDB.get_column(self.read_sql)
 		fetch_count = len(ids)
-		fetch_end = self.read_count+fetch_count-1
-		self.beginInsertRows(QModelIndex(), self.read_count, fetch_end)
-		self.displays.extend(ids)
-		self.read_count += fetch_count
+		fetch_end = self._read_count+fetch_count-1
+		self.beginInsertRows(QModelIndex(), self._read_count, fetch_end)
+		self._displays.extend(ids)
+		self._read_count += fetch_count
 		self.endInsertRows()
 
 	@property
 	def count_sql(self):
-		return SqlQuery(self.table_name)\
+		return SqlQuery(self._table)\
 			.select('COUNT(1)')\
 			.first()
 
 	@property
 	def read_sql(self):
-		remain_count = self.total_count - self.read_count
-		fetch_count = min(self.read_size, remain_count)
-		return SqlQuery(self.table_name)\
+		remain_count = self._total_count - self._read_count
+		fetch_count = min(self._read_size, remain_count)
+		return SqlQuery(self._table)\
 			.select('id')\
 			.limit(fetch_count)\
-			.offset(self.read_count)
+			.offset(self._read_count)
 
 	@property
 	def get_sql(self):
-		return SqlQuery(self.table_name)\
-			.select('id')\
-			.first()
+		if self._fields:
+			return SqlQuery(self._table)\
+				.select(*self._fields)\
+				.where('id=?')\
+				.first()
+		else:
+			return SqlQuery(self._table)\
+				.select()\
+				.where('id=?')\
+				.first()
 
-	def update_cache(self, row):
-		row_id = self.displays[row]
-		self.cache_data ={row: RDB.get_row(self.get_sql, row_id)}
+	def __update_cache(self, row):
+		row_id = self._displays[row]
+		self._cache_data ={row: RDB.get_row(self.get_sql, row_id)}
+
+	def __update_count(self):
+		self.row_count.emit(self._total_count)
+		self.col_count.emit(len(self._headers))
 
 	def get_value(self, row, col):
-		if row not in self.cache_data:
-			self.update_cache(row)
+		if row not in self._cache_data:
+			self.__update_cache(row)
 
-		return self.cache_data[row][col]
+		return self._cache_data[row][col]
 
 	def update(self):
 		self.beginResetModel()
-		self.read_count = 0
-		self.selected = []
-		self.total_count = RDB.get_one(self.count_sql)
-		self.displays = RDB.get_column(self.read_sql)
-		self.read_count = len(self.displays)
-		self.cache_data = {}
+		self._read_count = 0
+		self._selected = []
+		self._total_count = RDB.get_one(self.count_sql)
+		self._displays = RDB.get_column(self.read_sql)
+		self._read_count = len(self._displays)
+		self._cache_data = {}
 		self.endResetModel()
-		self.row_count.emit(self.total_count)
+		self.__update_count()
 
 	def reset(self):
 		self.beginResetModel()
-		self.cache_data = {}
-		self.read_count = 0
-		self.displays = []
-		self.selected = []
-		self.total_count = 0
+		self._cache_data = {}
+		self._read_count = 0
+		self._displays = []
+		self._selected = []
+		self._total_count = 0
 		self.endResetModel()
+		self.__update_count()
 
 	def clear(self):
 		sql = SqlQuery(self.table_name).delete()
 		RDB.query(sql)
 		self.reset()
 
+class RNASuiteOutputTreeModel(RNASuiteSqliteTableModel):
+	_table = 'output'
+	_headers = ['Name', '']
+	_fields = ['name', 'status', 'type', 'dataid']
+
+	def data(self, index, role=Qt.ItemDataRole):
+		if not index.isValid():
+			return None
+
+		row = index.row()
+		col = index.column()
+
+		if role == Qt.DisplayRole:
+			if col == 0:
+				return self.get_value(row, col)
+
+		elif role == Qt.DecorationRole:
+			if col == 0:
+				if self.get_value(row, 2):
+					return QIcon('icons/chart.svg')
+
+				else:
+					return QIcon('icons/table.svg')
+
+			elif col == 1:
+				state = self.get_value(row, 1)
+
+				if state == 1:
+					return QIcon('icons/dot.svg')
+
+				elif state == 2:
+					return QIcon('icons/refresh.svg')
+
+		return None
+
+	@Slot(int)
+	def update_status(self, rowid):
+		state = self.get_value(rowid, 1)
+
+		sql = SqlQuery(self._table)\
+			.update(status=0)\
+			.where('status=1')\
+		RDB.query(sql)
+
+		sql = SqlQuery(self._table)\
+			.update(status=1)\
+			.where('id=?')
+		RDB.query(sql, rowid)
+
+	@Slot(str)
+	def update_refresh(self, name):
+		sql = SqlQuery(self._table)\
+			.update(status=2)\
+			.where('name=?')
+		RDB.query(sql, name)
 
 class RNASuiteOutputTreeModel(QAbstractTableModel):
 	_headers = ['Name', '', 'plot', 'id', 'type', 'pyid']

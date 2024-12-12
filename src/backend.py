@@ -6,19 +6,6 @@ from utils import *
 
 __all__ = ['RDB', 'SqlQuery']
 
-data_tables = {
-	'input': [
-		'id INTEGER PRIMARY KEY',
-		'type TEXT',
-		'content TEXT'
-	],
-	'output': [
-		'id INTEGER PRIMARY KEY',
-		'name TEXT',
-		
-	]
-}
-
 class SqlTable:
 	@classmethod
 	def tables(cls):
@@ -39,6 +26,10 @@ class InputTable(SqlTable):
 
 class OutputTable(SqlTable):
 	name = str
+	status = int
+	type = int
+	dataid = int
+	content = str
 
 class SqlQuery:
 	def __init__(self, table):
