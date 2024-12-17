@@ -390,87 +390,36 @@ class RNASuiteOutputTreeWidget(QTreeView):
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
-		self.rowid = 0
-		self.datasets = {}
+
 		self.setRootIsDecorated(False)
 		self.clicked.connect(self._on_row_clicked)
-
 		self.create_model()
 
 	def sizeHint(self):
 		return QSize(200, 500)
 
 	def create_model(self):
-		self._data = pandas.DataFrame(columns=['name', 'update', 'plot', 'rid', 'type', 'pyid'])
 		self._model = RNASuiteOutputTreeModel(self)
-		self._model.load_data(self._data)
 		self.setModel(self._model)
-		self.setColumnHidden(2, True)
-		self.setColumnHidden(3, True)
-		self.setColumnHidden(4, True)
-		self.setColumnHidden(5, True)
 		self.header().setStretchLastSection(False)
 		self.header().setSectionResizeMode(0, QHeaderView.Stretch)
 		self.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
 
-	def add_row(self, **row):
-		if (self._data['name'].eq(row['name'])).any():
-			row_num = self._data[(self._data['name'] == row['name'])].index[0]
-			self._data.iloc[row_num, 1] = 1
-			data_id = self._data.iloc[row_num, 3]
-
-			if row['plot']:
-				row['data'] = int(row['data'])
-
-				if data_id != row['data']:
-					self.remove_plot.emit(data_id)
-
-				self._data.loc[self._data['plot'] == 1, 'update'] = 0
-				self._data.iloc[row_num, 3] = row['data']
-				self._data.iloc[row_num, 1] = 1
-				row['rid'] = row['data']
-				row['pyid'] = self._data.iloc[row_num, 5]
-
-			else:
-				self.datasets[data_id] = pandas.DataFrame.from_dict(row['data'], orient='tight')
-
-		else:
-			data = row.pop('data')
-			self.rowid += 1
-
-			if row['plot']:
-				data_id = int(data)
-				self._data.loc[self._data['plot'] == 1, 'update'] = 0
-
-			else:
-				data_id = self.rowid
-				self.datasets[data_id] = pandas.DataFrame.from_dict(data, orient='tight')
-
-			row['rid'] = data_id
-			row['pyid'] = self.rowid
-			self._data = pandas.concat(
-				[pandas.DataFrame([row], columns = self._data.columns), self._data],
-				ignore_index = True
-			)
-	
-		self._model.load_data(self._data)
-
-		if row['plot']:
-			self.show_panel.emit(row['type'], row['rid'], row['pyid'])
-
 	@Slot()
-	def receive(self, results):
+	def on_receive_data(self, results):
 		if not results:
 			return
 
 		for result in results:
-			self.add_row(
-				name = result[1],
-				update = 1,
-				plot = int(result[0]),
-				data = result[2],
-				type = result[3]
-			)
+			output = self._model.get_output_by_name(result['name'])
+
+			if output:
+				self._model.update_output(result, output.id)
+
+				if output.type == 'plot':
+					self.remove_plot.emit(output.code)
+			else:
+				self._model.add_output(result)
 
 	def _on_row_clicked(self, index):
 		row = index.row()

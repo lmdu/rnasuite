@@ -147,21 +147,11 @@ class RNASuiteREnvironment(multiprocessing.Process):
 							rchitect.rcall('send_val_to_r', data['variable'], data['value'])
 
 					case 'call':
-						print(data['func'])
 						ret = rchitect.rcopy(rchitect.rcall(data['func'], **data['params']))
 
-						if isinstance(ret, pandas.DataFrame):
-							ret = convert_dataframe_to_dict(ret)
-
-						elif isinstance(ret, list):
-							for i in range(len(ret)):
-								if isinstance(ret[i], pandas.DataFrame):
-									ret[i] = convert_dataframe_to_dict(ret[i])
-
-								else:
-									for j in range(len(ret[i])):
-										if isinstance(ret[i][j], pandas.DataFrame):
-											ret[i][j] = convert_dataframe_to_dict(ret[i][j])
+						for i in range(len(ret)):
+							if isinstance(ret[i]['data'], pandas.DataFrame):
+								ret[i]['data'] = convert_dataframe_to_dict(ret[i]['data'])
 
 						self.send('result', data=ret)
 

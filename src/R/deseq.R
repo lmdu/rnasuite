@@ -88,7 +88,7 @@ RnasuiteDeseqFindDegs <- function(counts=NULL, samples=NULL, design=NULL, fdr,
 			type = 'table',
 			name = 'Normalized read counts',
 			data = normal.counts,
-			code = 'normal_count'
+			kind = 'normal_count'
 		)
 	}
 
@@ -99,7 +99,7 @@ RnasuiteDeseqFindDegs <- function(counts=NULL, samples=NULL, design=NULL, fdr,
 		type = 'table',
 		name = paste(treatment, 'vs', control, 'DEGs list'),
 		data = degs.list,
-		code = 'degs_list'
+		kind = 'degs_list'
 	)
 
 	plotMA(degs)
@@ -112,7 +112,7 @@ RnasuiteDeseqFindDegs <- function(counts=NULL, samples=NULL, design=NULL, fdr,
 		type = 'plot',
 		name = plot.name,
 		data = plot.id,
-		code = 'deseq_maplot'
+		kind = 'deseq_maplot'
 	)
 
 	return(result)
@@ -134,7 +134,7 @@ RnasuiteDeseqMaplotUpdate <- function(id=NULL, ...) {
 		type = 'plot',
 		name = chart$name,
 		data = plot.id,
-		code = chart$code
+		kind = chart$code
 	))
 	return(out)
 }

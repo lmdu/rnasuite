@@ -68,7 +68,7 @@ class RNASuiteMainWindow(QMainWindow):
 		self.r_thread.message.connect(self.show_status_message)
 		self.r_thread.socket.connect(self.plot_viewer.connect_to_socket)
 		self.r_thread.plot.connect(self.plot_viewer.update_image)
-		self.r_thread.results.connect(self.output_list.receive)
+		self.r_thread.results.connect(self.output_list.on_receive_data)
 		self.r_thread.running.connect(self.wait_spinner.toggle)
 		self.r_thread.running.connect(self.run_progress.setVisible)
 		self.r_thread.start()

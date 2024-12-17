@@ -8,28 +8,46 @@ __all__ = ['RDB', 'SqlQuery']
 
 class SqlTable:
 	@classmethod
-	def tables(cls):
+	def _tables(cls):
 		ts = {int: 'INTEGER', float: 'REAL', str: 'TEXT'}
 		for c in cls.__subclasses__():
-			table = c.__name__.split('Table')[0].lower()
+			table = c.__name__.replace('Table', '').lower()
 			fields = ['id INTEGER PRIMARY KEY']
 			for attr in dir(c):
-				if not attr.startswith('__'):
+				if not attr.startswith('_'):
 					t = getattr(c, attr)
 					fields.append("{} {}".format(attr, ts[t]))
 
 			yield table, fields
 
-class InputTable(SqlTable):
+
+class InputFileTable(SqlTable):
+	
+
 	name = str
 	content = str
 
-class OutputTable(SqlTable):
+class OutputChartTable(SqlTable):
+	fields = ['name', 'state', 'type', 'kind', 'code', 'data']
+	types = ['TEXT', 'INTEGER', 'TEXT', 'TEXT', 'INTEGER', ]
+
+
 	name = str
-	status = int
-	type = int
-	dataid = int
-	content = str
+
+	#current: 1, update: 2, normal: 0
+	state = int
+
+	#table or plot
+	type = str
+
+	#degs_list or enrich_list etc.
+	kind = str
+
+	#plot id or data id
+	code = int
+	
+	#data content or svg
+	data = str
 
 class SqlQuery:
 	def __init__(self, table):
@@ -57,7 +75,7 @@ class SqlQuery:
 		self._querys.extend([' ', item])
 
 	def create(self, *args):
-		self._creates = args
+		self._creates.extend(args)
 		self._action = 'CREATE'
 		return self
 
@@ -112,7 +130,7 @@ class SqlQuery:
 	def build(self):
 		match self._action:
 			case 'CREATE':
-				self.__add("TABLE IF NOT EXISTS ({})".format(','.join(self._creates)))
+				self.__add("TABLE IF NOT EXISTS {} ({})".format(self._table, ','.join(self._creates)))
 
 			case 'SELECT':
 				if self._selects:
@@ -179,6 +197,8 @@ class DataBackend(QObject):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
+		self.connect()
+
 	def __del__(self):
 		if self.conn is not None:
 			self.conn.close()
@@ -204,9 +224,19 @@ class DataBackend(QObject):
 			return self.cursor.execute(str(sql))
 
 	def create_tables(self):
-		for table, fields in SqlTable.tables():
+		for table, fields in SqlTable._tables():
 			sql = SqlQuery(table).create(*fields)
 			self.query(sql)
+			print(sql.build())
+
+	def insert_row(self, sql, *args):
+		self.query(sql, args)
+
+	def insert_rows(self, sql, rows):
+		self.cursor.executemany(str(sql), rows)
+
+	def update_row(self, sql, *args):
+		self.query(sql, args)
 
 	def get_one(self, sql, *args):
 		for row in self.query(sql, args):

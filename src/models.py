@@ -1,3 +1,4 @@
+import json
 import pandas
 
 from PySide6.QtGui import *
@@ -62,20 +63,20 @@ class RNASuiteSqliteTableModel(QAbstractTableModel):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
-		self._displays = []
-		self._selected = []
+		self.displays = []
+		self.selected = []
 
-		self._total_count = 0
-		self._read_count = 0
-		self._read_size = 200
+		self.total_count = 0
+		self.read_count = 0
+		self.read_size = 200
 
-		self._cache_data = {}
+		self.cache_data = {}
 
 	def rowCount(self, parent=QModelIndex()):
 		if parent.isValid():
 			return 0
 
-		return len(self._displays)
+		return len(self.displays)
 
 	def columnCount(self, parent=QModelIndex()):
 		if parent.isValid():
@@ -101,7 +102,7 @@ class RNASuiteSqliteTableModel(QAbstractTableModel):
 		if parent.isValid():
 			return False
 
-		if self._read_count < self._total_count:
+		if self.read_count < self.total_count:
 			return True
 
 		return False
@@ -112,10 +113,10 @@ class RNASuiteSqliteTableModel(QAbstractTableModel):
 
 		ids = RDB.get_column(self.read_sql)
 		fetch_count = len(ids)
-		fetch_end = self._read_count+fetch_count-1
-		self.beginInsertRows(QModelIndex(), self._read_count, fetch_end)
-		self._displays.extend(ids)
-		self._read_count += fetch_count
+		fetch_end = self.read_count+fetch_count-1
+		self.beginInsertRows(QModelIndex(), self.read_count, fetch_end)
+		self.displays.extend(ids)
+		self.read_count += fetch_count
 		self.endInsertRows()
 
 	@property
@@ -126,70 +127,75 @@ class RNASuiteSqliteTableModel(QAbstractTableModel):
 
 	@property
 	def read_sql(self):
-		remain_count = self._total_count - self._read_count
-		fetch_count = min(self._read_size, remain_count)
+		remain_count = self.total_count - self.read_count
+		fetch_count = min(self.read_size, remain_count)
 		return SqlQuery(self._table)\
 			.select('id')\
 			.limit(fetch_count)\
-			.offset(self._read_count)
+			.offset(self.read_count)
 
 	@property
 	def get_sql(self):
-		if self._fields:
-			return SqlQuery(self._table)\
-				.select(*self._fields)\
-				.where('id=?')\
-				.first()
-		else:
-			return SqlQuery(self._table)\
-				.select()\
-				.where('id=?')\
-				.first()
+		#if self._fields:
+		return SqlQuery(self._table)\
+			.select(*self._fields)\
+			.where('id=?')\
+			.first()
+		#else:
+		#	return SqlQuery(self._table)\
+		#		.select()\
+		#		.where('id=?')\
+		#		.first()
 
-	def __update_cache(self, row):
-		row_id = self._displays[row]
-		self._cache_data ={row: RDB.get_row(self.get_sql, row_id)}
+	def update_cache(self, row):
+		row_id = self.displays[row]
+		self.cache_data ={row: RDB.get_row(self.get_sql, row_id)}
 
-	def __update_count(self):
-		self.row_count.emit(self._total_count)
+	def update_count(self):
+		self.row_count.emit(self.total_count)
 		self.col_count.emit(len(self._headers))
 
 	def get_value(self, row, col):
-		if row not in self._cache_data:
-			self.__update_cache(row)
+		if row not in self.cache_data:
+			self.update_cache(row)
 
-		return self._cache_data[row][col]
+		return self.cache_data[row][col]
 
 	def update(self):
 		self.beginResetModel()
-		self._read_count = 0
-		self._selected = []
-		self._total_count = RDB.get_one(self.count_sql)
-		self._displays = RDB.get_column(self.read_sql)
-		self._read_count = len(self._displays)
-		self._cache_data = {}
+		self.read_count = 0
+		self.selected = []
+		self.total_count = RDB.get_one(self.count_sql)
+		self.displays = RDB.get_column(self.read_sql)
+		self.read_count = len(self.displays)
+		self.cache_data = {}
 		self.endResetModel()
-		self.__update_count()
+		self.update_count()
 
 	def reset(self):
 		self.beginResetModel()
-		self._cache_data = {}
-		self._read_count = 0
-		self._displays = []
-		self._selected = []
-		self._total_count = 0
+		self.cache_data = {}
+		self.read_count = 0
+		self.displays = []
+		self.selected = []
+		self.total_count = 0
 		self.endResetModel()
-		self.__update_count()
+		self.update_count()
 
 	def clear(self):
 		sql = SqlQuery(self.table_name).delete()
 		RDB.query(sql)
 		self.reset()
 
+	def update_row_by_dataid(self, data_id):
+		if data_id in self.displays:
+			row_id = self.displays.index(data_id)
+			self.update_cache(row_id)
+
 class RNASuiteOutputTreeModel(RNASuiteSqliteTableModel):
-	_table = 'output'
+	_table = 'outputchart'
 	_headers = ['Name', '']
-	_fields = ['name', 'status', 'type', 'dataid']
+	_fields = ['name', 'state', 'type']
 
 	def data(self, index, role=Qt.ItemDataRole):
 		if not index.isValid():
@@ -204,7 +210,7 @@ class RNASuiteOutputTreeModel(RNASuiteSqliteTableModel):
 
 		elif role == Qt.DecorationRole:
 			if col == 0:
-				if self.get_value(row, 2):
+				if self.get_value(row, 2) == 'table':
 					return QIcon('icons/chart.svg')
 
 				else:
@@ -221,28 +227,76 @@ class RNASuiteOutputTreeModel(RNASuiteSqliteTableModel):
 
 		return None
 
-	@Slot(int)
-	def update_status(self, rowid):
-		state = self.get_value(rowid, 1)
-
+	def get_output_by_name(self, name):
 		sql = SqlQuery(self._table)\
-			.update(status=0)\
-			.where('status=1')\
-		RDB.query(sql)
+			.select('id', 'type', 'code')\
+			.where('name=?')\
+			.first()
+		return RDB.get_dict(sql, name)
 
+	def update_output(self, result, outid):
 		sql = SqlQuery(self._table)\
-			.update(status=1)\
+			.update('state', 'code', 'data')\
 			.where('id=?')
-		RDB.query(sql, rowid)
 
-	@Slot(str)
-	def update_refresh(self, name):
+		if result['type'] == 'plot':
+			state = 1
+			code = result['data']
+			data = ''
+		else:
+			state = 2
+			code = 0
+			data = json.dumps(result['data'])
+
+		RDB.update_row(sql, state, code, data, outid)
+		self.update_row_by_dataid(outid)
+
+	def add_output(self, result):
+		if result['type'] == 'plot':
+			state = 1
+			code = result['data']
+			data = ''
+		else:
+			state = 2
+			code = 0
+			data = json.dumps(result['data'])
+
 		sql = SqlQuery(self._table)\
-			.update(status=2)\
-			.where('name=?')
-		RDB.query(sql, name)
+			.insert(7)
+		RDB.insert_row(sql, None, result['name'], state,
+			result['type'], result['kind'], code, data)
 
-class RNASuiteOutputTreeModel(QAbstractTableModel):
+		"""
+		sql = SqlQuery(self._table)\
+			.select('id')\
+			.where('name=?')\
+			.first()
+		data_id = RDB.get_one(sql, name)
+
+		self.beginInsertRows(QModelIndex(), self.total_count-1, self.total_count)
+		self.displays.append(data_id)
+		self.total_count += 1
+		self.endInsertRows()
+		self.update_count()
+		"""
+		self.update()
+
+	@Slot(int)
+	def update_row_click_state(self, index):
+		self.beginResetModel()
+		sql = SqlQuery(self._table)\
+			.update('state')\
+			.where('state=?')
+		RDB.update_row(sql, 1, 0)
+
+		sql = SqlQuery(self._table)\
+			.update('state')\
+			.where('id=?')
+		data_id = self._displays[index.row()]
+		RDB.update_row(sql, 1, data_id)
+		self.endResetModel()
+
+class RNASuiteOutputTreesModel(QAbstractTableModel):
 	_headers = ['Name', '', 'plot', 'id', 'type', 'pyid']
 
 	def __init__(self, parent=None):

@@ -68,7 +68,7 @@ class RNASuiteBaseWorker(QThread):
 
 class RNASuiteDeseqIdentifyWorker(RNASuiteBaseWorker):
 	script = 'R/deseq.R'
-	function = 'rnasuite_deseq_find_degs'
+	function = 'RnasuiteDeseqFindDegs'
 
 class RNASuiteDegsExtractWorker(RNASuiteBaseWorker):
 	script = 'R/extract.R'
