@@ -19,6 +19,7 @@ __all__ = [
 	'set_parameter_widget_value',
 	'get_parameter_widget_value',
 	'RNASuiteInputListWidget',
+	'RNASuiteInputTreeWidget',
 	'RNASuiteOutputTreeWidget',
 	'RNASuitePackageInstallButton',
 	'RNASuiteWaitingSpinner',
@@ -381,6 +382,35 @@ class RNASuiteInputListWidget(QListWidget):
 
 			case self.sample_item:
 				self.show_table.emit(self.sample_info)
+
+class RNASuiteInputTreeWidget(QTreeView):
+	show_table = Signal(str, int)
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+
+		self.setRootIsDecorated(False)
+		self.clicked.connect(self._on_row_clicked)
+		self.create_model()
+
+	def sizeHint(self):
+		return QSize(200, 300)
+
+	def create_model(self):
+		self._model = RNASuiteInputTreeModel(self)
+		self.setModel(self._model)
+		self.header().setStretchLastSection(False)
+		self.header().setSectionResizeMode(0, QHeaderView.Stretch)
+		self.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+
+	@Slot()
+	def _on_row_clicked(self, index):
+		data_id = self._model.get_data_id(index)
+		table = self._model.get_table()
+		self.show_table.emit(table, data_id)
+
+	def import_data(self, dataframe, name, tag):
+		self._model.add_input(dataframe, name, tag)
 
 class RNASuiteOutputTreeWidget(QTreeView):
 	show_table = Signal(object)

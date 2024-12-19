@@ -1,4 +1,5 @@
 import sqlite3
+import threading
 
 from PySide6.QtCore import *
 
@@ -7,31 +8,31 @@ from utils import *
 __all__ = ['RDB', 'SqlQuery']
 
 class SqlTable:
+	def __setattr__(cls, name, val):
+		super().__setattr__(name, val)
+
 	@classmethod
-	def _tables(cls):
+	def tables(cls):
 		ts = {int: 'INTEGER', float: 'REAL', str: 'TEXT'}
-		for c in cls.__subclasses__():
-			table = c.__name__.replace('Table', '').lower()
+		for sc in cls.__subclasses__():
+			table = sc.__name__.replace('Table', '').lower()
 			fields = ['id INTEGER PRIMARY KEY']
-			for attr in dir(c):
-				if not attr.startswith('_'):
-					t = getattr(c, attr)
-					fields.append("{} {}".format(attr, ts[t]))
+			fields.extend([
+				"{} {}".format(attr, ts[getattr(sc, attr)])
+				for attr in sc.__dict__
+				if not attr.startswith('_')
+			])
 
 			yield table, fields
 
-
 class InputFileTable(SqlTable):
-	
-
 	name = str
-	content = str
+	tag = str
+	rows = int
+	cols = int
+	data = str
 
 class OutputChartTable(SqlTable):
-	fields = ['name', 'state', 'type', 'kind', 'code', 'data']
-	types = ['TEXT', 'INTEGER', 'TEXT', 'TEXT', 'INTEGER', ]
-
-
 	name = str
 
 	#current: 1, update: 2, normal: 0
@@ -41,7 +42,7 @@ class OutputChartTable(SqlTable):
 	type = str
 
 	#degs_list or enrich_list etc.
-	kind = str
+	tag = str
 
 	#plot id or data id
 	code = int
@@ -69,9 +70,6 @@ class SqlQuery:
 		return self.build()
 
 	def __add(self, item):
-		if not self._querys:
-			self._querys.append(self._action)
-
 		self._querys.extend([' ', item])
 
 	def create(self, *args):
@@ -128,6 +126,8 @@ class SqlQuery:
 		return self
 
 	def build(self):
+		self._querys = [self._action]
+
 		match self._action:
 			case 'CREATE':
 				self.__add("TABLE IF NOT EXISTS {} ({})".format(self._table, ','.join(self._creates)))
@@ -224,10 +224,9 @@ class DataBackend(QObject):
 			return self.cursor.execute(str(sql))
 
 	def create_tables(self):
-		for table, fields in SqlTable._tables():
+		for table, fields in SqlTable.tables():
 			sql = SqlQuery(table).create(*fields)
 			self.query(sql)
-			print(sql.build())
 
 	def insert_row(self, sql, *args):
 		self.query(sql, args)
@@ -281,3 +280,4 @@ class DataBackend(QObject):
 		return [col[0] for col in res.description]
 
 RDB = DataBackend()
+

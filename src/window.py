@@ -3,6 +3,8 @@ import json
 import traceback
 import multiprocessing
 
+import pandas
+
 from PySide6.QtGui import *
 from PySide6.QtCore import *
 from PySide6.QtWidgets import *
@@ -12,7 +14,6 @@ from plot import *
 from renv import *
 from config import *
 from errors import *
-from config import *
 from tables import *
 from workers import *
 from dialogs import *
@@ -377,29 +378,29 @@ class RNASuiteMainWindow(QMainWindow):
 		dlg = RNASuiteGlobalSettingDialog(self)
 		dlg.exec()
 
-	def import_data_file(self, title, reader):
+	def import_data_file(self, title, tag):
 		delimiter = None
-		file, _ = QFileDialog.getOpenFileName(self,
+		data_file, _ = QFileDialog.getOpenFileName(self,
 			caption = title,
 			filter = "Table files (*.csv *.tsv *.xls *.xlsx *.txt);;All files (*.*)"
 		)
 
-		if not file:
+		if not data_file:
 			return
 
-		if not file.endswith(('.csv', '.tsv', '.xls', '.xlsx')):
+		if not data_file.endswith(('.csv', '.tsv', '.xls', '.xlsx')):
 			delimiter = RNASuiteColumnSeparatorDialog.get_delimiter(self)
 
-		match reader:
-			case 'read_count':
-				self.input_list.import_read_count(file, delimiter)
+		if data_file.endswith('.csv'):
+			data_frame = pandas.read_csv(data_file, index_col=0)
+		elif data_file.endswith('.tsv'):
+			data_frame = pandas.read_csv(data_file, index_col=0, sep='\t')
+		elif data_file.endswith(('.xls', '.xlsx')):
+			data_frame = pandas.read_excel(data_file, index_col=0)
+		else:
+			data_frame = pandas.read_table(data_file, index_col=0, sep=delimiter)
 
-			case 'sample_info':
-				self.input_list.import_sample_info(file, delimiter)
-
-
-
-
+		self.input_list.import_data(data_frame, os.path.basename(data_file), tag)
 
 	@Slot()
 	def on_import_read_counts(self):
@@ -611,8 +612,8 @@ class RNASuiteMainWindow(QMainWindow):
 
 	def create_input_dock(self):
 		#self.input_tabs = QTabWidget(self)
-		self.input_list = RNASuiteInputListWidget(self)
-		self.input_list.show_table.connect(self._on_show_table_data)
+		self.input_list = RNASuiteInputTreeWidget(self)
+		self.input_list.show_table.connect(self._on_show_data_table)
 		self.input_dock = QDockWidget("Input", self)
 		#self.input_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
 		self.input_dock.setAllowedAreas(Qt.LeftDockWidgetArea)
@@ -662,6 +663,13 @@ class RNASuiteMainWindow(QMainWindow):
 		#dlg.exec()
 		self.data_table.update_data(data)
 		self.stack_widget.setCurrentIndex(0)
+
+	@Slot()
+	def _on_show_data_table(self, table, data_id):
+		self.data_table.show_data(table, data_id)
+		self.stack_widget.setCurrentIndex(0)
+
+
 
 	@Slot()
 	def _on_show_table_plot(self, plot_id):

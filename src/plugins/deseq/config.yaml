@@ -1,0 +1,14 @@
+name: DESeq2
+version: 0.1.0
+description: call deseq2 to identify degs
+
+file: deseq.R
+
+functions:
+  RnasuiteDeseqFindDegs:
+    action: analysis
+    parameters:
+
+  RnasuiteDeseqMaplotUpdate:
+    action: plot
+    parameters:

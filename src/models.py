@@ -7,7 +7,11 @@ from PySide6.QtCore import *
 from utils import *
 from backend import *
 
-__all__ = ['RNASuitePandasModel', 'RNASuiteOutputTreeModel']
+__all__ = [
+	'RNASuitePandasModel',
+	'RNASuiteInputTreeModel',
+	'RNASuiteOutputTreeModel'
+]
 
 class RNASuitePandasModel(QAbstractTableModel):
 	def __init__(self, parent=None):
@@ -52,6 +56,17 @@ class RNASuitePandasModel(QAbstractTableModel):
 		#self.display_count = 10
 		self._data = data
 		self.endResetModel()
+
+	def show_data(self, table, data_id):
+		sql = SqlQuery(table)\
+			.select('data')\
+			.where('id=?')\
+			.first()
+
+		data = RDB.get_one(sql, data_id)
+		data = json.loads(data)
+		data_frame = pandas.DataFrame.from_dict(data, orient='tight')
+		self.load_data(data_frame)
 
 class RNASuiteSqliteTableModel(QAbstractTableModel):
 	row_count = Signal(int)
@@ -161,6 +176,12 @@ class RNASuiteSqliteTableModel(QAbstractTableModel):
 
 		return self.cache_data[row][col]
 
+	def get_data_id(self, index):
+		return self.displays[index.row()]
+
+	def get_table(self):
+		return self._table
+
 	def update(self):
 		self.beginResetModel()
 		self.read_count = 0
@@ -210,7 +231,7 @@ class RNASuiteOutputTreeModel(RNASuiteSqliteTableModel):
 
 		elif role == Qt.DecorationRole:
 			if col == 0:
-				if self.get_value(row, 2) == 'table':
+				if self.get_value(row, 2) == 'plot':
 					return QIcon('icons/chart.svg')
 
 				else:
@@ -292,9 +313,48 @@ class RNASuiteOutputTreeModel(RNASuiteSqliteTableModel):
 		sql = SqlQuery(self._table)\
 			.update('state')\
 			.where('id=?')
-		data_id = self._displays[index.row()]
+		data_id = self.get_data_id(index)
 		RDB.update_row(sql, 1, data_id)
 		self.endResetModel()
+
+class RNASuiteInputTreeModel(RNASuiteSqliteTableModel):
+	_table = 'inputfile'
+	_headers = ['Name', 'Tag']
+	_fields = ['name', 'tag']
+
+	def add_input(self, df, name, tag):
+		rows = len(df)
+		cols = len(df.columns)
+		data = json.dumps(df.to_dict(orient='tight'))
+
+		sql = SqlQuery(self._table)\
+			.select('id')\
+			.where('tag=?')\
+			.first()
+		data_id = RDB.get_one(sql, tag)
+
+		if data_id:
+			sql = SqlQuery(self._table)\
+				.update('name', 'rows', 'cols', 'data')\
+				.where('id=?')
+			RDB.update_row(sql, name, rows, cols, data, data_id)
+		else:
+			sql = SqlQuery(self._table)\
+				.insert(6)
+			RDB.insert_row(sql, None, name, tag, rows, cols, data)
+
+		self.update()
+
+	def get_data(self, index):
+		row_id = index.row()
+		data_id = self.get_data_id(index)
+
+		sql = SqlQuery(self._table)\
+			.select('data')\
+			.where('id=?')\
+			.first()
+		data = RDB.get_one(sql, data_id)
+		return data
 
 class RNASuiteOutputTreesModel(QAbstractTableModel):
 	_headers = ['Name', '', 'plot', 'id', 'type', 'pyid']

@@ -14,7 +14,10 @@ from PySide6.QtCore import *
 from utils import *
 from config import *
 
-__all__ = ['RNASuiteREnvironment', 'RNASuiteRMessageProcessor']
+__all__ = [
+	'RNASuiteREnvironment',
+	'RNASuiteRMessageProcessor'
+]
 
 class RNASuiteREnvironment(multiprocessing.Process):
 	def __init__(self, rconn, port, token):

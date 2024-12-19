@@ -14,10 +14,9 @@ class RNASuitePandasTable(QTableView):
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
-		self.data_frame = pandas.DataFrame()
 
-		self.data_model = RNASuitePandasModel(self)
-		self.setModel(self.data_model)
+		self._model = RNASuitePandasModel(self)
+		self.setModel(self._model)
 
 		self.setAlternatingRowColors(True)
 		self.setCornerButtonEnabled(False)
@@ -25,10 +24,7 @@ class RNASuitePandasTable(QTableView):
 		self.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
 		self.verticalHeader().setDefaultSectionSize(10)
 
-	@property
-	def empty(self):
-		return self.data_frame.empty
-
+	"""
 	def read_file(self, data_file):
 		if data_file.endswith('.csv'):
 			self.data_frame = pandas.read_csv(data_file, index_col=0)
@@ -45,23 +41,24 @@ class RNASuitePandasTable(QTableView):
 
 		if not self.data_frame.empty:
 			self.data_model.load_data(self.data_frame)
+	"""
 
-	def set_tight(self, tight):
-		self.data_frame = pandas.DataFrame.from_dict(tight, orient='tight')
-		#self.data_frame = self.data_frame.round(3)
-		self.data_model.load_data(self.data_frame)
+	def load_dataframe(self, df):
+		self._model.load_data(df)
 
-	def update_data(self, data):
-		self.data_model.load_data(data)
+	def load_tight(self, tight):
+		df = pandas.DataFrame.from_dict(tight, orient='tight')
+		self._model.load_data(df)
 
-	def get_data(self):
-		return self.data_frame
-
-	def get_tight(self):
-		if self.data_frame.empty:
-			return {}
+	def load_data(self, data):
+		if isinstance(pandas.DataFrame, data):
+			self.load_dataframe(data)
 		else:
-			return self.data_frame.to_dict(orient='tight')
+			self.load_tight(data)
+
+	def show_data(self, table, data_id):
+		self._model.show_data(table, data_id)
+
 
 class RNASuiteTableWidgets(QObject):
 	intab = Signal(QWidget, str)
