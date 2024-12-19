@@ -1,13 +1,42 @@
-name: DESeq2
+name: deseq
 version: 0.1.0
 description: call deseq2 to identify degs
 
-file: deseq.R
+entry: deseq.R
 
 functions:
   RnasuiteDeseqFindDegs:
     action: analysis
     parameters:
+      counts:
+        data: read_count
+      samples:
+        data: sample_info
+      design:
+        type: text
+      fdr:
+        type: decimal
+        range:
+          - 0
+          - 1
+        step: 0.01
+      logfc:
+        type: decimal
+        min: 0
+        max: 1000
+        step: 1
+      compare:
+        type: choice
+        data: sample_info
+      treatment:
+        type: choice
+        require: compare
+        data: sample_info
+      control:
+        type: choice
+        require: compare
+        data: sample_info
+
 
   RnasuiteDeseqMaplotUpdate:
     action: plot
