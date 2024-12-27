@@ -7,13 +7,12 @@ entry: deseq.R
 functions:
   RnasuiteDeseqFindDegs:
     action: analysis
+    menu: Identify DEGs by DESeq2
     parameters:
       counts:
         data: read_count
       samples:
         data: sample_info
-      design:
-        type: text
       fdr:
         type: decimal
         range:
@@ -36,7 +35,9 @@ functions:
         type: choice
         require: compare
         data: sample_info
-
+      design:
+        type: formula
+        require: compare
 
   RnasuiteDeseqMaplotUpdate:
     action: plot

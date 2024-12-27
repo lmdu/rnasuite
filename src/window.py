@@ -318,14 +318,14 @@ class RNASuiteMainWindow(QMainWindow):
 		self.view_menu.addAction(self.output_dock_act)
 		#self.view_menu.addAction(self.plot_dock_act)
 
-		self.anal_menu = self.menuBar().addMenu("&Analysis")
-		deg_menu = self.anal_menu.addMenu("DEGs Analysis")
+		self.analysis_menu = self.menuBar().addMenu("&Analysis")
+		deg_menu = self.analysis_menu.addMenu("DEGs Analysis")
 		deg_menu.addAction(self.deseq_degs_act)
 		deg_menu.addAction(self.edger_degs_act)
 		deg_menu.addSeparator()
 		deg_menu.addAction(self.show_degs_act)
-		self.anal_menu.addAction(self.sample_cluster_act)
-		self.enrich_menu = self.anal_menu.addMenu("Enrichment Analysis")
+		self.analysis_menu.addAction(self.sample_cluster_act)
+		self.enrich_menu = self.analysis_menu.addMenu("Enrichment Analysis")
 		self.enrich_menu.addAction(self.go_enrich_act)
 		self.enrich_menu.addAction(self.kegg_enrich_act)
 
@@ -345,6 +345,10 @@ class RNASuiteMainWindow(QMainWindow):
 
 		self.help_menu = self.menuBar().addMenu("&Help")
 		self.help_menu.addAction(self.about_act)
+
+	@Slot()
+	def register_actions(self, action):
+		pass
 
 	def create_toolbar(self):
 		self.tool_bar = self.addToolBar("Show Toolbar")

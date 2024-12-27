@@ -50,6 +50,12 @@ class OutputChartTable(SqlTable):
 	#data content or svg
 	data = str
 
+class PluginManageTable(SqlTable):
+	name = str
+	version = str
+	description = str
+
+
 class SqlQuery:
 	def __init__(self, table):
 		self._table = table
