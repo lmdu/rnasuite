@@ -15,6 +15,7 @@ from renv import *
 from config import *
 from errors import *
 from tables import *
+from plugin import *
 from workers import *
 from dialogs import *
 from widgets import *
@@ -45,6 +46,7 @@ class RNASuiteMainWindow(QMainWindow):
 		self.create_error_prompter()
 		self.read_settings()
 		self.show()
+		self.register_plugin_action('deseq', ['Analysis', 'DEG Detect', 'Run DESeq2'], 'test')
 
 	def read_settings(self):
 		settings = QSettings()
@@ -275,6 +277,9 @@ class RNASuiteMainWindow(QMainWindow):
 		self.install_act = QAction("R Package Manager", self)
 		self.install_act.triggered.connect(self.on_open_package_dialog)
 
+		self.plugin_act = QAction("Plugin Manager", self)
+		self.plugin_act.triggered.connect(self.on_open_plugin_dialog)
+
 		self.about_act = QAction("About", self)
 		self.about_act.triggered.connect(self.on_open_about_dialog)
 
@@ -284,7 +289,7 @@ class RNASuiteMainWindow(QMainWindow):
 		self.enrich_act = QAction(QIcon("icons/enrich.svg"), "Enrichment Analysis", self)
 
 	def create_menus(self):
-		self.file_menu = self.menuBar().addMenu("&File")
+		self.file_menu = self.menuBar().addMenu("File")
 		self.file_menu.addAction(self.open_act)
 		self.file_menu.addAction(self.save_act)
 		self.file_menu.addAction(self.saveas_act)
@@ -303,22 +308,22 @@ class RNASuiteMainWindow(QMainWindow):
 		self.file_menu.addAction(self.import_sample_act)
 		self.file_menu.addAction(self.import_deg_act)
 
-		self.import_menu = self.file_menu.addMenu("&Import Annotation Data")
+		self.import_menu = self.file_menu.addMenu("Import Annotation Data")
 		self.import_menu.addAction(self.ingname_act)
 		self.import_menu.addAction(self.ingoann_act)
 		self.import_menu.addAction(self.inkegga_act)
 		self.file_menu.addSeparator()
 		self.file_menu.addAction(self.exit_act)
 
-		self.edit_menu = self.menuBar().addMenu("&Edit")
+		self.edit_menu = self.menuBar().addMenu("Edit")
 		#self.edit_menu.addAction(self.global_set_act)
 
-		self.view_menu = self.menuBar().addMenu("&View")
+		self.view_menu = self.menuBar().addMenu("View")
 		self.view_menu.addAction(self.input_dock_act)
 		self.view_menu.addAction(self.output_dock_act)
 		#self.view_menu.addAction(self.plot_dock_act)
 
-		self.analysis_menu = self.menuBar().addMenu("&Analysis")
+		self.analysis_menu = self.menuBar().addMenu("Analysis")
 		deg_menu = self.analysis_menu.addMenu("DEGs Analysis")
 		deg_menu.addAction(self.deseq_degs_act)
 		deg_menu.addAction(self.edger_degs_act)
@@ -329,7 +334,7 @@ class RNASuiteMainWindow(QMainWindow):
 		self.enrich_menu.addAction(self.go_enrich_act)
 		self.enrich_menu.addAction(self.kegg_enrich_act)
 
-		self.plot_menu = self.menuBar().addMenu("&Plots")
+		self.plot_menu = self.menuBar().addMenu("Plots")
 		deg_plots = self.plot_menu.addMenu("DEGs")
 		deg_plots.addAction(self.dist_plot_act)
 		deg_plots.addAction(self.venn_plot_act)
@@ -338,17 +343,34 @@ class RNASuiteMainWindow(QMainWindow):
 		deg_plots.addAction(self.volcano_plot_act)
 		deg_plots.addAction(self.ma_plot_act)
 		
-		self.tool_menu = self.menuBar().addMenu("&Tools")
+		self.tool_menu = self.menuBar().addMenu("Tools")
 		self.tool_menu.addAction(self.install_act)
+		self.tool_menu.addAction(self.plugin_act)
 		self.tool_menu.addSeparator()
 		self.tool_menu.addAction(self.global_set_act)
 
-		self.help_menu = self.menuBar().addMenu("&Help")
+		self.help_menu = self.menuBar().addMenu("Help")
 		self.help_menu.addAction(self.about_act)
 
 	@Slot()
-	def register_actions(self, action):
-		pass
+	def register_plugin_action(self, plugin, menus, function):
+		print('yes')
+		target_menu = self.menuBar()
+		print(target_menu)
+		new_action = QAction(menus[-1], self)
+		new_action.triggered.connect(lambda : self.do_run_plugin(plugin, function))
+
+		for menu in menus[:-1]:
+			for action in target_menu.actions():
+				print(action.text())
+				if action.text() == menu:
+					target_menu = QMenu.menuInAction(action)
+					break
+			else:
+				target_menu = target_menu.addMenu(menu)
+
+		target_menu.addAction(new_action)
+		print('end')
 
 	def create_toolbar(self):
 		self.tool_bar = self.addToolBar("Show Toolbar")
@@ -375,6 +397,11 @@ class RNASuiteMainWindow(QMainWindow):
 	@Slot()
 	def on_open_package_dialog(self):
 		dlg = RNASuitePackageManagerDialog(self)
+		dlg.exec()
+
+	@Slot()
+	def on_open_plugin_dialog(self):
+		dlg = RNASuitePluginManager(self)
 		dlg.exec()
 
 	@Slot()
@@ -495,6 +522,11 @@ class RNASuiteMainWindow(QMainWindow):
 			return True
 
 		return False
+
+	def do_run_plugin(self, plugin, function):
+		print(plugin)
+		print(function)
+
 
 	@Slot()
 	def do_identify_degs_by_deseq2(self):

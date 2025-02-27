@@ -10,8 +10,46 @@ from backend import *
 __all__ = [
 	'RNASuitePandasModel',
 	'RNASuiteInputTreeModel',
-	'RNASuiteOutputTreeModel'
+	'RNASuiteOutputTreeModel',
+	'RNASuitePluginModel'
 ]
+
+class RNASuitePluginModel(QAbstractTableModel):
+	_headers = ['Name', 'Description', 'Version', 'Action']
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		self.datasets = []
+
+	def columnCount(self, parent=QModelIndex()):
+		if parent == QModelIndex():
+			if self.datasets:
+				return len(self.datasets[0])
+
+		return 0
+
+	def rowCount(self, parent=QModelIndex()):
+		if parent == QModelIndex():
+			return len(self.datasets)
+
+		return 0
+
+	def data(self, index, role=Qt.ItemDataRole):
+		if not index.isValid():
+			return None
+
+		if role == Qt.DisplayRole:
+			return self.datasets[index.row()][index.column()]
+
+	def headerData(self, section, orientation, role):
+		if role == Qt.DisplayRole:
+			if orientation == Qt.Horizontal:
+				return self._headers[section]
+
+	def add_plugin(self, *args):
+		self.beginResetModel()
+		self.datasets.append(args)
+		self.endResetModel()
 
 class RNASuitePandasModel(QAbstractTableModel):
 	def __init__(self, parent=None):

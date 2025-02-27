@@ -1,3 +1,4 @@
+import os
 import secrets
 
 from utils import *
@@ -7,6 +8,8 @@ RNASUITE_BUILD = "20231230"
 
 RNASUITE_PORT = get_unused_port()
 RNASUITE_TOKEN = secrets.token_hex(5)
+
+RNASUITE_PLUGIN = os.path.join(os.path.dirname(__file__), 'plugins')
 
 #table type: 1 for input, 2 for output
 class RNASuiteDataTables(ClassDict):

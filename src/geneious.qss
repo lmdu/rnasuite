@@ -1,0 +1,237 @@
+/* ===== 全局基础设定 ===== */
+* {
+    font-family: "Segoe UI", Arial, sans-serif; /* 精确字体栈 */
+    font-size: 12px; /* 标准字号 */
+    color: #2d2d2d; /* 主文本色（深灰） */
+    background-color: #f8f8f8; /* 全局背景色（浅灰白） */
+    selection-background-color: #0078d7; /* 选中项蓝 */
+    selection-color: white;
+}
+
+/* ===== 主窗口框架 ===== */
+QMainWindow {
+    background-color: #f8f8f8;
+    border: none;
+}
+
+/* ===== 菜单栏 (精准 Office 风格) ===== */
+QMenuBar {
+    background-color: #f8f8f8;
+    border-bottom: 1px solid #d0d0d0; /* 下分割线 */
+    padding: 2px 0;
+}
+
+QMenuBar::item {
+    padding: 5px 15px;
+    border-radius: 3px;
+    background: transparent;
+}
+
+QMenuBar::item:selected { /* 悬停态 */
+    background-color: #e5e5e5; /* 浅灰底色 */
+}
+
+QMenuBar::item:pressed { /* 点击态 */
+    background-color: #d0d0d0;
+}
+
+/* ===== 下拉菜单 ===== */
+QMenu {
+    background-color: white;
+    border: 1px solid #c0c0c0; /* 精细边框 */
+    padding: 4px;
+    margin: 0; /* 消除原生偏移 */
+}
+
+QMenu::item {
+    padding: 6px 24px 6px 12px; /* 右侧留空 */
+    min-width: 120px;
+}
+
+QMenu::item:selected {
+    background-color: #e5f1fb; /* Geneious 标志性浅蓝 */
+    color: #2d2d2d;
+}
+
+QMenu::icon { /* 菜单图标对齐 */
+    padding-left: 8px;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 4px 8px;
+}
+
+/* ===== 工具栏 (仿 Ribbon 质感) ===== */
+QToolBar {
+    background-color: white;
+    border: none;
+    border-bottom: 1px solid #d0d0d0; /* 底部阴影线 */
+    padding: 4px 8px;
+    spacing: 6px;
+}
+
+QToolButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 5px 8px;
+    margin: 0 2px;
+}
+
+QToolButton:hover { /* 悬停光效 */
+    background-color: #f0f0f0;
+    border-color: #d0d0d0;
+}
+
+QToolButton:pressed, 
+QToolButton:checked { /* 点击/激活态 */
+    background-color: #e0e0e0;
+}
+
+QToolButton::menu-indicator { /* 隐藏下拉箭头 */
+    image: none;
+}
+
+/* ===== 按钮层级控制 ===== */
+QPushButton { /* 普通按钮 */
+    background: white;
+    border: 1px solid #c0c0c0;
+    border-radius: 3px;
+    padding: 6px 12px;
+    min-width: 80px;
+}
+
+QPushButton:hover {
+    background: #f5f5f5;
+}
+
+QPushButton:pressed {
+    background: #e0e0e0;
+}
+
+QPushButton:focus { /* 键盘焦点 */
+    border: 1px solid #0078d7;
+    outline: none;
+}
+
+/* 主要操作按钮（蓝色强调） */
+QPushButton[primary="true"] {
+    background: #0078d7;
+    border-color: #005a9e;
+    color: white;
+}
+
+QPushButton[primary="true"]:hover {
+    background: #006cbd;
+}
+
+QPushButton[primary="true"]:pressed {
+    background: #005a9e;
+}
+
+/* ===== 输入控件 ===== */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background: white;
+    border: 1px solid #c0c0c0;
+    border-radius: 3px;
+    padding: 5px;
+    selection-background-color: #0078d7;
+}
+
+QLineEdit:focus, 
+QTextEdit:focus, 
+QPlainTextEdit:focus {
+    border-color: #0078d7;
+    outline: none;
+}
+
+/* ===== 数据表格 (科研风格) ===== */
+QTableView {
+    background: white;
+    border: 1px solid #d0d0d0;
+    gridline-color: #e8e8e8; /* 细网格线 */
+    alternate-background-color: #f8f8f8; /* 斑马纹 */
+}
+
+QHeaderView::section {
+    background-color: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    padding: 6px;
+    font-weight: bold;
+}
+
+QHeaderView::section:checked { /* 排序箭头激活态 */
+    background-color: #e0e0e0;
+}
+
+/* ===== 树形列表 ===== */
+QTreeView {
+    background: white;
+    border: 1px solid #d0d0d0;
+    show-decoration-selected: 1;
+}
+
+QTreeView::item {
+    padding: 4px 0;
+}
+
+QTreeView::item:selected {
+    background-color: #e5f1fb; /* 同菜单选中色 */
+    border-radius: 3px;
+}
+
+/* ===== 选项卡 ===== */
+QTabWidget::pane {
+    border: 1px solid #d0d0d0;
+    top: 1px;
+}
+
+QTabBar::tab {
+    background: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    border-bottom: none;
+    padding: 8px 16px;
+    margin-right: 2px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+
+QTabBar::tab:selected {
+    background: white;
+    border-color: #d0d0d0;
+    color: #0078d7; /* 激活标签蓝字 */
+}
+
+QTabBar::tab:hover:!selected {
+    background: #e8e8e8;
+}
+
+/* ===== 滚动条 (极简设计) ===== */
+QScrollBar:vertical {
+    width: 10px;
+    background: transparent;
+}
+
+QScrollBar::handle:vertical {
+    background: #d0d0d0;
+    min-height: 20px;
+    border-radius: 5px;
+}
+
+QScrollBar::add-page:vertical, 
+QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+/* ===== 状态栏 ===== */
+QStatusBar {
+    background: white;
+    border-top: 1px solid #d0d0d0;
+    padding: 4px;
+}
+
+QStatusBar::item {
+    border: none;
+}

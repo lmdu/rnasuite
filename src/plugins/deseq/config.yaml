@@ -4,10 +4,15 @@ description: call deseq2 to identify degs
 
 entry: deseq.R
 
+requires:
+  - package: DESeq2
+    version: 1.2.1
+
 functions:
   RnasuiteDeseqFindDegs:
     action: analysis
-    menu: Identify DEGs by DESeq2
+    menu:
+      - Identify DEGs by DESeq2
     parameters:
       counts:
         data: read_count
@@ -19,25 +24,27 @@ functions:
           - 0
           - 1
         step: 0.01
+        default: 0.05
       logfc:
         type: decimal
         min: 0
         max: 1000
         step: 1
+        default: 1
       compare:
         type: choice
         data: sample_info
       treatment:
         type: choice
-        require: compare
+        depend: compare
         data: sample_info
       control:
         type: choice
-        require: compare
+        depend: compare
         data: sample_info
       design:
         type: formula
-        require: compare
+        depend: compare
 
   RnasuiteDeseqMaplotUpdate:
     action: plot

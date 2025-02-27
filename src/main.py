@@ -27,7 +27,7 @@ class RNASuiteApplication(QApplication):
 		return super().event(event)
 
 	def set_style(self):
-		with open('style.qss') as style:
+		with open('geneious.qss', encoding='utf-8') as style:
 			sheet = style.read()
 
 		self.setStyleSheet(sheet)
